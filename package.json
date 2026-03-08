@@ -1,0 +1,25 @@
+{
+  "name": "ad-reward-blockchain",
+  "version": "1.0.0",
+  "description": "Decentralized advertising reward system using Ethereum smart contracts.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pavanmsd12/Ad-Reward-Blockchain.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/pavanmsd12/Ad-Reward-Blockchain/issues"
+  },
+  "homepage": "https://github.com/pavanmsd12/Ad-Reward-Blockchain#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.3"
+  }
+}
