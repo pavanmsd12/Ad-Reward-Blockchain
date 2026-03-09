@@ -6,7 +6,7 @@ interface IRewardToken {
 }
 
 contract AdManager {
-
+event CampaignCreated(uint campaignId, string adName, uint reward);
     address public owner;
     IRewardToken public rewardToken;
 
@@ -36,6 +36,7 @@ contract AdManager {
             reward: _reward,
             active: true
         });
+        emit CampaignCreated(campaignCount, _adName, _reward);
     }
 
     function watchAd(uint campaignId) public {
