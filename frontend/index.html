@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AdReward DApp</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+</head>
+
+<body>
+
+<h2>AdReward Platform</h2>
+
+<button onclick="connectWallet()">Connect Wallet</button>
+
+<br><br>
+
+<button onclick="watchAd()">Watch Ad</button>
+
+<p id="status"></p>
+
+<script>
+
+const adManagerAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+
+const adManagerABI = [
+"function watchAd(uint campaignId)"
+];
+
+let provider;
+let signer;
+let contract;
+
+async function connectWallet(){
+
+    provider = new ethers.BrowserProvider(window.ethereum);
+
+    await provider.send("eth_requestAccounts", []);
+
+    signer = await provider.getSigner();
+
+    contract = new ethers.Contract(adManagerAddress, adManagerABI, signer);
+
+    document.getElementById("status").innerText = "Wallet Connected";
+}
+
+async function watchAd(){
+
+    const tx = await contract.watchAd(1);
+
+    await tx.wait();
+
+    document.getElementById("status").innerText = "Reward received!";
+}
+const tokenAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+const tokenABI = [
+"function balanceOf(address) view returns (uint)"
+];
+async function checkBalance(){
+
+    const token = new ethers.Contract(tokenAddress, tokenABI, signer);
+
+    const address = await signer.getAddress();
+
+    const balance = await token.balanceOf(address);
+
+    document.getElementById("status").innerText =
+    "Your ART Balance: " + balance;
+
+}
+
+</script>
+<button onclick="checkBalance()">Check ART Balance</button>
+</body>
+</html>
