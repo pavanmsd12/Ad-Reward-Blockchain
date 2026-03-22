@@ -2,18 +2,77 @@
 <html>
 <head>
 <title>AdReward DApp</title>
+
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f5f7fa;
+    padding: 20px;
+}
+
+h2 {
+    color: #333;
+}
+
+button {
+    padding: 8px 12px;
+    margin: 5px;
+    border: none;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+input {
+    padding: 8px;
+    margin: 5px;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+</style>
+
 </head>
 
 <body>
 
 <h2>AdReward Platform</h2>
 
-<button onclick="connectWallet()">Connect Wallet</button>
+<button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
 
-<br><br>
+<p id="role"></p>
 
-<button onclick="watchAd()">Watch Ad</button>
+<div id="advertiserSection" style="display:none;">
+<h3>Create Campaign</h3>
+
+<input id="adName" placeholder="Ad Name" />
+<input id="reward" placeholder="Reward" />
+<input id="budget" placeholder="Budget" />
+
+<button onclick="createCampaign()">Create</button>
+</div>
+
+<br>
+
+<button onclick="loadCampaigns()">Load Campaigns</button>
+
+<div id="campaignList"></div>
+
+<br>
+
+<button onclick="checkBalance()">Check Balance</button>
 
 <p id="status"></p>
 
@@ -22,40 +81,140 @@
 const adManagerAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 const adManagerABI = [
-"function watchAd(uint campaignId)"
+"function watchAd(uint campaignId)",
+"function createCampaign(string,uint,uint)",
+"function campaignCount() view returns (uint)",
+"function campaigns(uint) view returns (address,string,uint,uint,bool)",
+"function hasClaimed(address,uint) view returns (bool)" // ✅ added
 ];
+
+const advertiserAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 
 let provider;
 let signer;
 let contract;
 
-async function connectWallet(){
-
-    provider = new ethers.BrowserProvider(window.ethereum);
-
-    await provider.send("eth_requestAccounts", []);
-
-    signer = await provider.getSigner();
-
-    contract = new ethers.Contract(adManagerAddress, adManagerABI, signer);
-
-    document.getElementById("status").innerText = "Wallet Connected";
+function isConnected() {
+    if (!contract) {
+        document.getElementById("status").innerText = "Connect wallet first!";
+        return false;
+    }
+    return true;
 }
 
-async function watchAd(){
+// 🔥 CONNECT WALLET (stable)
+async function connectWallet(){
 
-    const tx = await contract.watchAd(1);
+    const btn = document.getElementById("connectBtn");
+    btn.disabled = true;
 
+    try {
+
+        provider = new ethers.BrowserProvider(window.ethereum);
+
+        const accounts = await window.ethereum.request({
+            method: "eth_requestAccounts"
+        });
+
+        signer = await provider.getSigner(accounts[0]);
+
+        const userAddress = await signer.getAddress();
+
+        contract = new ethers.Contract(adManagerAddress, adManagerABI, signer);
+
+        document.getElementById("status").innerText = "Connected: " + userAddress;
+
+        if(userAddress.toLowerCase() === advertiserAddress.toLowerCase()){
+            document.getElementById("role").innerText = "Role: Advertiser";
+            document.getElementById("advertiserSection").style.display = "block";
+        } else {
+            document.getElementById("role").innerText = "Role: User";
+            document.getElementById("advertiserSection").style.display = "none";
+        }
+
+    } catch (error) {
+        document.getElementById("status").innerText = error.message;
+    }
+
+    btn.disabled = false;
+}
+
+// ✅ CREATE CAMPAIGN
+async function createCampaign(){
+
+    if(!isConnected()) return;
+
+    const adName = document.getElementById("adName").value;
+    const reward = document.getElementById("reward").value;
+    const budget = document.getElementById("budget").value;
+
+    const tx = await contract.createCampaign(adName, reward, budget);
+    await tx.wait();
+
+    document.getElementById("status").innerText = "Campaign Created!";
+
+    await loadCampaigns(); // 🔥 auto refresh
+}
+
+// ✅ LOAD CAMPAIGNS
+async function loadCampaigns(){
+
+    if(!isConnected()) return;
+
+    const count = await contract.campaignCount();
+
+    let html = "";
+
+    for(let i = 1; i <= count; i++){
+
+        const c = await contract.campaigns(i);
+
+        html += `
+        <div class="card">
+            <h4>${c[1]}</h4>
+            <p>Reward: ${c[2]}</p>
+            <p>Remaining: ${c[3]}</p>
+            <button onclick="watchAd(${i})">Watch Ad</button>
+        </div>
+        `;
+    }
+
+    document.getElementById("campaignList").innerHTML = html;
+}
+
+// ✅ WATCH AD (with already watched check)
+async function watchAd(id){
+
+    if(!isConnected()) return;
+
+    const address = await signer.getAddress();
+
+    const claimed = await contract.hasClaimed(address, id);
+
+    if(claimed){
+        document.getElementById("status").innerText = "You already watched this ad!";
+        return;
+    }
+
+    const tx = await contract.watchAd(id);
     await tx.wait();
 
     document.getElementById("status").innerText = "Reward received!";
+
+    await loadCampaigns();
+    await checkBalance();
 }
+
+// ✅ CHECK BALANCE
 const tokenAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 const tokenABI = [
 "function balanceOf(address) view returns (uint)"
 ];
+
 async function checkBalance(){
+
+    if(!isConnected()) return;
 
     const token = new ethers.Contract(tokenAddress, tokenABI, signer);
 
@@ -65,10 +224,14 @@ async function checkBalance(){
 
     document.getElementById("status").innerText =
     "Your ART Balance: " + balance;
-
 }
 
+// 🔥 HANDLE ACCOUNT SWITCH
+window.ethereum?.on("accountsChanged", () => {
+    location.reload();
+});
+
 </script>
-<button onclick="checkBalance()">Check ART Balance</button>
+
 </body>
 </html>
