@@ -12,10 +12,6 @@ body {
     padding: 20px;
 }
 
-h2 {
-    color: #333;
-}
-
 button {
     padding: 8px 12px;
     margin: 5px;
@@ -30,6 +26,10 @@ button:hover {
     background: #45a049;
 }
 
+button:disabled {
+    background: gray;
+}
+
 input {
     padding: 8px;
     margin: 5px;
@@ -41,17 +41,20 @@ input {
     margin: 10px 0;
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: 0.2s;
+}
+
+.card:hover {
+    transform: scale(1.02);
 }
 </style>
-
 </head>
 
 <body>
 
 <h2>AdReward Platform</h2>
 
-<button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
-
+<button onclick="connectWallet()">Connect Wallet</button>
 <p id="role"></p>
 
 <div id="advertiserSection" style="display:none;">
@@ -60,6 +63,7 @@ input {
 <input id="adName" placeholder="Ad Name" />
 <input id="reward" placeholder="Reward" />
 <input id="budget" placeholder="Budget" />
+<input id="videoUrl" placeholder="Video URL (.mp4)" />
 
 <button onclick="createCampaign()">Create</button>
 </div>
@@ -73,26 +77,44 @@ input {
 <br>
 
 <button onclick="checkBalance()">Check Balance</button>
+<button onclick="loadHistory()">My Rewards</button>
 
 <p id="status"></p>
 
+<div id="history"></div>
+
+<!-- VIDEO SECTION -->
+<div id="adSection" style="display:none; margin-top:20px;">
+    <h3>Watching Ad...</h3>
+    <video id="adVideo" width="300" controls></video>
+    <p id="timer"></p>
+    <button id="claimBtn" disabled onclick="claimReward()">Claim Reward</button>
+</div>
+
 <script>
 
+// 🔥 UPDATE THESE AFTER DEPLOY
 const adManagerAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const tokenAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 const adManagerABI = [
 "function watchAd(uint campaignId)",
-"function createCampaign(string,uint,uint)",
+"function createCampaign(string,string,uint,uint)",
 "function campaignCount() view returns (uint)",
-"function campaigns(uint) view returns (address,string,uint,uint,bool)",
-"function hasClaimed(address,uint) view returns (bool)" // ✅ added
+"function campaigns(uint) view returns (address,string,string,uint,uint,bool)",
+"function hasClaimed(address,uint) view returns (bool)",
+"function isAdvertiser(address) view returns (bool)"
 ];
 
-const advertiserAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+const tokenABI = [
+"function balanceOf(address) view returns (uint)"
+];
 
 let provider;
 let signer;
 let contract;
+
+let currentCampaignId = null;
 
 function isConnected() {
     if (!contract) {
@@ -102,44 +124,38 @@ function isConnected() {
     return true;
 }
 
-// 🔥 CONNECT WALLET (stable)
+// CONNECT
 async function connectWallet(){
 
-    const btn = document.getElementById("connectBtn");
-    btn.disabled = true;
+    provider = new ethers.BrowserProvider(window.ethereum);
 
-    try {
+    const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts"
+    });
 
-        provider = new ethers.BrowserProvider(window.ethereum);
+    const userAddress = accounts[0];
 
-        const accounts = await window.ethereum.request({
-            method: "eth_requestAccounts"
-        });
+    signer = await provider.getSigner(userAddress);
+    contract = new ethers.Contract(adManagerAddress, adManagerABI, signer);
 
-        signer = await provider.getSigner(accounts[0]);
+    document.getElementById("status").innerText = "Connected: " + userAddress;
 
-        const userAddress = await signer.getAddress();
+    // 🔥 ROLE LOGIC
+    const isAdv = await contract.isAdvertiser(userAddress);
 
-        contract = new ethers.Contract(adManagerAddress, adManagerABI, signer);
-
-        document.getElementById("status").innerText = "Connected: " + userAddress;
-
-        if(userAddress.toLowerCase() === advertiserAddress.toLowerCase()){
-            document.getElementById("role").innerText = "Role: Advertiser";
-            document.getElementById("advertiserSection").style.display = "block";
-        } else {
-            document.getElementById("role").innerText = "Role: User";
-            document.getElementById("advertiserSection").style.display = "none";
-        }
-
-    } catch (error) {
-        document.getElementById("status").innerText = error.message;
+    if(isAdv){
+        document.getElementById("role").innerText = "Role: Advertiser";
+        document.getElementById("advertiserSection").style.display = "block";
+    } else {
+        document.getElementById("role").innerText = "Role: User";
+        document.getElementById("advertiserSection").style.display = "none";
     }
 
-    btn.disabled = false;
+    await loadCampaigns();
+    await checkBalance();
 }
 
-// ✅ CREATE CAMPAIGN
+// CREATE CAMPAIGN
 async function createCampaign(){
 
     if(!isConnected()) return;
@@ -147,20 +163,22 @@ async function createCampaign(){
     const adName = document.getElementById("adName").value;
     const reward = document.getElementById("reward").value;
     const budget = document.getElementById("budget").value;
+    const videoUrl = document.getElementById("videoUrl").value;
 
-    const tx = await contract.createCampaign(adName, reward, budget);
+    const tx = await contract.createCampaign(adName, videoUrl, reward, budget);
     await tx.wait();
 
     document.getElementById("status").innerText = "Campaign Created!";
 
-    await loadCampaigns(); // 🔥 auto refresh
+    await loadCampaigns();
 }
 
-// ✅ LOAD CAMPAIGNS
+// LOAD CAMPAIGNS
 async function loadCampaigns(){
 
     if(!isConnected()) return;
 
+    const address = await signer.getAddress();
     const count = await contract.campaignCount();
 
     let html = "";
@@ -168,65 +186,121 @@ async function loadCampaigns(){
     for(let i = 1; i <= count; i++){
 
         const c = await contract.campaigns(i);
+        const claimed = await contract.hasClaimed(address, i);
+        const isAdvertiser = address.toLowerCase() === c[0].toLowerCase();
 
         html += `
         <div class="card">
             <h4>${c[1]}</h4>
-            <p>Reward: ${c[2]}</p>
-            <p>Remaining: ${c[3]}</p>
-            <button onclick="watchAd(${i})">Watch Ad</button>
-        </div>
-        `;
+            <p><b>Reward:</b> ${c[3]}</p>
+            <p><b>Remaining:</b> ${c[4]}</p>
+
+            ${isAdvertiser 
+              ? `<button disabled>Your Ad</button>`
+              : claimed 
+                ? `<button disabled>Already Watched</button>` 
+                : `<button onclick="watchAd(${i})">Watch Ad</button>`}
+        </div>`;
     }
 
     document.getElementById("campaignList").innerHTML = html;
 }
 
-// ✅ WATCH AD (with already watched check)
+// WATCH AD
 async function watchAd(id){
 
     if(!isConnected()) return;
 
     const address = await signer.getAddress();
+    const c = await contract.campaigns(id);
 
-    const claimed = await contract.hasClaimed(address, id);
-
-    if(claimed){
-        document.getElementById("status").innerText = "You already watched this ad!";
+    if(address.toLowerCase() === c[0].toLowerCase()){
+        alert("Advertiser cannot watch own ad");
         return;
     }
 
-    const tx = await contract.watchAd(id);
+    currentCampaignId = id;
+
+    const video = document.getElementById("adVideo");
+    video.src = c[2];
+    video.load();
+    video.play();
+
+    document.getElementById("adSection").style.display = "block";
+    document.getElementById("claimBtn").disabled = true;
+    document.getElementById("timer").innerText = "Watch full video";
+
+    video.onended = () => {
+        document.getElementById("claimBtn").disabled = false;
+        document.getElementById("timer").innerText = "You can now claim reward!";
+    };
+}
+
+// CLAIM
+async function claimReward(){
+
+    const tx = await contract.watchAd(currentCampaignId);
     await tx.wait();
 
     document.getElementById("status").innerText = "Reward received!";
+    document.getElementById("adSection").style.display = "none";
 
     await loadCampaigns();
     await checkBalance();
 }
 
-// ✅ CHECK BALANCE
-const tokenAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-
-const tokenABI = [
-"function balanceOf(address) view returns (uint)"
-];
-
+// BALANCE
 async function checkBalance(){
 
     if(!isConnected()) return;
 
     const token = new ethers.Contract(tokenAddress, tokenABI, signer);
+    const address = await signer.getAddress();
+    const balance = await token.balanceOf(address);
+
+    document.getElementById("status").innerText = "Your ART Balance: " + balance;
+}
+
+// HISTORY
+async function loadHistory(){
+
+    if (!contract) return;
 
     const address = await signer.getAddress();
 
-    const balance = await token.balanceOf(address);
+    const res = await fetch(`http://localhost:3001/history/${address}`);
+    const data = await res.json();
 
-    document.getElementById("status").innerText =
-    "Your ART Balance: " + balance;
+    const div = document.getElementById("history");
+    div.innerHTML = "<h3>My Rewards</h3>";
+
+    if (data.length === 0) {
+        div.innerHTML += "<p>No rewards yet</p>";
+        return;
+    }
+
+    let total = 0;
+
+    for (const tx of data) {
+
+        const c = await contract.campaigns(tx.campaign_id);
+        const name = c[1];
+
+        total += Number(tx.reward);
+
+        div.innerHTML += `
+            <div class="card">
+                <p><b>Campaign:</b> ${name}</p>
+                <p><b>Reward:</b> ${tx.reward}</p>
+                <p><b>Time:</b> ${new Date(tx.timestamp).toLocaleString()}</p>
+            </div>
+        `;
+    }
+
+    div.innerHTML += `<h3>Total Earned: ${total} ART</h3>`;
 }
 
-// 🔥 HANDLE ACCOUNT SWITCH
+// ACCOUNT CHANGE
 window.ethereum?.on("accountsChanged", () => {
     location.reload();
 });

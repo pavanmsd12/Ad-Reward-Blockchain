@@ -8,7 +8,7 @@ interface IRewardToken {
 
 contract AdManager {
 
-    event CampaignCreated(uint campaignId, string adName, uint reward);
+    event CampaignCreated(uint campaignId, string adName, string videoUrl, uint reward);
     event AdWatched(address user, uint campaignId, uint reward);
 
     address public owner;
@@ -17,6 +17,7 @@ contract AdManager {
     struct Campaign {
         address advertiser;
         string adName;
+        string videoUrl; // 🔥 NEW
         uint reward;
         uint remainingBudget;
         bool active;
@@ -26,6 +27,7 @@ contract AdManager {
 
     mapping(uint => Campaign) public campaigns;
     mapping(address => mapping(uint => bool)) public hasClaimed;
+    mapping(address => bool) public isAdvertiser;
 
     constructor(address _tokenAddress) {
         owner = msg.sender;
@@ -34,6 +36,7 @@ contract AdManager {
 
     function createCampaign(
         string memory _adName,
+        string memory _videoUrl, // 🔥 NEW
         uint _reward,
         uint _budget
     ) public {
@@ -50,12 +53,13 @@ contract AdManager {
         campaigns[campaignCount] = Campaign({
             advertiser: msg.sender,
             adName: _adName,
+            videoUrl: _videoUrl, // 🔥 NEW
             reward: _reward,
             remainingBudget: _budget,
             active: true
         });
-
-        emit CampaignCreated(campaignCount, _adName, _reward);
+        isAdvertiser[msg.sender] = true;
+        emit CampaignCreated(campaignCount, _adName, _videoUrl, _reward);
     }
 
     function watchAd(uint campaignId) public {
@@ -63,6 +67,8 @@ contract AdManager {
         require(campaignId > 0 && campaignId <= campaignCount, "Invalid campaign");
 
         Campaign storage campaign = campaigns[campaignId];
+
+        require(msg.sender != campaign.advertiser, "Advertiser cannot watch own ad");
 
         require(campaign.active, "Campaign inactive");
         require(!hasClaimed[msg.sender][campaignId], "Already rewarded");
