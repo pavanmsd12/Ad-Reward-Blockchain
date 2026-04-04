@@ -2,51 +2,60 @@
 pragma solidity ^0.8.20;
 
 contract RewardToken {
+    string public constant name = "AdRewardToken";
+    string public constant symbol = "ART";
+    uint8 public constant decimals = 0;
 
-    string public name = "AdRewardToken";
-    string public symbol = "ART";
+    uint256 public totalSupply;
+    address public immutable owner;
 
-    uint public totalSupply;
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
 
-    mapping(address => uint) public balanceOf;
-    mapping(address => mapping(address => uint)) public allowance;
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed tokenOwner, address indexed spender, uint256 value);
 
-    address public owner;
+    constructor(uint256 initialSupply) {
+        require(initialSupply > 0, "Initial supply must be greater than 0");
 
-    constructor(uint _initialSupply) {
         owner = msg.sender;
-        totalSupply = _initialSupply;
-        balanceOf[owner] = totalSupply;
+        totalSupply = initialSupply;
+        balanceOf[owner] = initialSupply;
+
+        emit Transfer(address(0), owner, initialSupply);
     }
 
-    function transfer(address _to, uint _amount) public returns (bool) {
+    function transfer(address to, uint256 amount) public returns (bool) {
+        require(to != address(0), "Invalid recipient");
+        require(balanceOf[msg.sender] >= amount, "Not enough tokens");
 
-        require(balanceOf[msg.sender] >= _amount, "Not enough tokens");
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
 
-        balanceOf[msg.sender] -= _amount;
-        balanceOf[_to] += _amount;
-
+        emit Transfer(msg.sender, to, amount);
         return true;
     }
 
-    function approve(address _spender, uint _amount) public returns (bool) {
+    function approve(address spender, uint256 amount) public returns (bool) {
+        require(spender != address(0), "Invalid spender");
 
-        allowance[msg.sender][_spender] = _amount;
+        allowance[msg.sender][spender] = amount;
 
+        emit Approval(msg.sender, spender, amount);
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint _amount) public returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public returns (bool) {
+        require(from != address(0), "Invalid sender");
+        require(to != address(0), "Invalid recipient");
+        require(balanceOf[from] >= amount, "Not enough balance");
+        require(allowance[from][msg.sender] >= amount, "Allowance exceeded");
 
-        require(balanceOf[_from] >= _amount, "Not enough balance");
+        allowance[from][msg.sender] -= amount;
+        balanceOf[from] -= amount;
+        balanceOf[to] += amount;
 
-        require(allowance[_from][msg.sender] >= _amount, "Allowance exceeded");
-
-        allowance[_from][msg.sender] -= _amount;
-
-        balanceOf[_from] -= _amount;
-        balanceOf[_to] += _amount;
-
+        emit Transfer(from, to, amount);
         return true;
     }
 }

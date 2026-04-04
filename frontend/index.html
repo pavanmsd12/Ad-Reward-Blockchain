@@ -1,311 +1,1216 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>AdReward DApp</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AdReward Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-2: #f1f5f9;
+      --line: #d8e1ea;
+      --text: #132238;
+      --muted: #5b6b7f;
+      --primary: #0f766e;
+      --primary-dark: #0b5b55;
+      --accent: #f59e0b;
+      --success: #15803d;
+      --danger: #dc2626;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+    * { box-sizing: border-box; }
 
-<style>
-body {
-    font-family: Arial;
-    background: #f5f7fa;
-    padding: 20px;
-}
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 24%),
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.1), transparent 22%),
+        var(--bg);
+      color: var(--text);
+    }
 
-button {
-    padding: 8px 12px;
-    margin: 5px;
-    border: none;
-    background: #4CAF50;
-    color: white;
-    cursor: pointer;
-    border-radius: 5px;
-}
+    .app {
+      width: min(1120px, calc(100% - 24px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
 
-button:hover {
-    background: #45a049;
-}
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
 
-button:disabled {
-    background: gray;
-}
+    .brand h1 {
+      margin: 0;
+      font-size: 32px;
+    }
 
-input {
-    padding: 8px;
-    margin: 5px;
-}
+    .brand p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
 
-.card {
-    background: white;
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    transition: 0.2s;
-}
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-.card:hover {
-    transform: scale(1.02);
-}
-</style>
+    .nav button,
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 10px 18px rgba(15, 118, 110, 0.15);
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      background: #9aa8b3;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .nav button {
+      background: white;
+      color: var(--text);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    .nav button.active {
+      background: var(--text);
+      color: white;
+      border-color: var(--text);
+    }
+
+    .secondary {
+      background: #e8eef5;
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid var(--line);
+    }
+
+    .secondary:hover:not(:disabled) {
+      background: #dde7ef;
+    }
+
+    .accent {
+      background: var(--accent);
+      color: #30220a;
+      box-shadow: 0 10px 18px rgba(245, 158, 11, 0.2);
+    }
+
+    .accent:hover:not(:disabled) {
+      background: #e28f09;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-main {
+      grid-template-columns: 340px 1fr;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .card h2,
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .wallet-grid,
+    .campaign-grid,
+    .history-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .wallet-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .meta {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .meta-value {
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 13px;
+      font-size: 14px;
+      background: white;
+    }
+
+    input:focus {
+      outline: 2px solid rgba(15, 118, 110, 0.16);
+      border-color: var(--primary);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .campaign-card,
+    .history-card {
+      background: white;
+      border: 1px solid #e5ebf2;
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .campaign-meta,
+    .history-meta {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin: 14px 0;
+    }
+
+    .campaign-meta div,
+    .history-meta div {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .campaign-meta strong,
+    .history-meta strong {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.08em;
+    }
+
+    .status {
+      border-radius: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+    }
+
+    .status.success {
+      background: rgba(21, 128, 61, 0.08);
+      border-color: rgba(21, 128, 61, 0.18);
+      color: var(--success);
+    }
+
+    .status.error {
+      background: rgba(220, 38, 38, 0.08);
+      border-color: rgba(220, 38, 38, 0.18);
+      color: var(--danger);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 26px;
+      border: 1px dashed var(--line);
+      border-radius: 16px;
+      color: var(--muted);
+      background: #fafcff;
+    }
+
+    .video-shell {
+      display: none;
+      background: #0f172a;
+      color: white;
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .video-shell video {
+      width: 100%;
+      max-height: 320px;
+      border-radius: 14px;
+      background: black;
+      margin-top: 10px;
+    }
+
+    .video-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .summary {
+      padding: 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.12));
+      border: 1px solid rgba(15, 118, 110, 0.12);
+      margin-bottom: 14px;
+    }
+
+    .summary strong {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .summary span {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 920px) {
+      .grid-main,
+      .wallet-grid,
+      .grid-2,
+      .campaign-meta,
+      .history-meta {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
-
 <body>
+ <div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <h1>AdReward Platform</h1>
+      <p>Advertisers fund campaigns. Users watch and earn ART.</p>
+    </div>
+    <div class="nav">
+      <button class="active" data-tab-btn="overview" onclick="showSection('overview')">Overview</button>
+      <button data-tab-btn="advertiser" onclick="showSection('advertiser')">Advertiser</button>
+      <button data-tab-btn="rewards" onclick="showSection('rewards')">Rewards</button>
+    </div>
+  </div>
 
-<h2>AdReward Platform</h2>
+  <section class="card">
+    <div class="wallet-grid">
+      <div class="meta">
+        <div class="meta-label">Connected Account</div>
+        <div id="accountValue" class="meta-value">Not connected</div>
+      </div>
+      <div class="meta">
+        <div class="meta-label">Role</div>
+        <div id="roleValue" class="meta-value">User</div>
+      </div>
+      <div class="meta">
+        <div class="meta-label">ART Balance</div>
+        <div id="balanceValue" class="meta-value">0 ART</div>
+      </div>
+      <div class="meta">
+        <div class="meta-label">Admin Wallet</div>
+        <div id="adminValue" class="meta-value">Unknown</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button onclick="connectWallet()">Connect Wallet</button>
+      <button class="secondary" onclick="refreshDashboard()">Refresh</button>
+      <button class="secondary" onclick="loadHistory()">My Rewards</button>
+    </div>
+  </section>
 
-<button onclick="connectWallet()">Connect Wallet</button>
-<p id="role"></p>
+  <div style="height: 18px;"></div>
 
-<div id="advertiserSection" style="display:none;">
-<h3>Create Campaign</h3>
+  <section id="overview" class="section active">
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>Send Tokens</h2>
+        <p class="muted">Transfer ART from the connected wallet to another wallet.</p>
+        <div class="form-grid">
+          <div>
+            <label for="fundAddress">Receiver Address</label>
+            <input id="fundAddress" placeholder="0x..." />
+          </div>
+          <div>
+            <label for="fundAmount">Token Amount</label>
+            <input id="fundAmount" type="number" min="1" placeholder="1000" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="accent" onclick="sendTokens()">Send Tokens</button>
+        </div>
+      </div>
 
-<input id="adName" placeholder="Ad Name" />
-<input id="reward" placeholder="Reward" />
-<input id="budget" placeholder="Budget" />
-<input id="videoUrl" placeholder="Video URL (.mp4)" />
-
-<button onclick="createCampaign()">Create</button>
+    <div class="card">
+  <h2>Buy ART</h2>
+  <p class="muted">Buy ART directly on-chain using ETH.</p>
+  <div class="form-grid">
+    <div>
+      <label for="buyEthAmount">ETH Amount</label>
+      <input id="buyEthAmount" type="number" min="0" step="0.001" placeholder="0.1" />
+    </div>
+    <div class="meta">
+      <div class="meta-label">Rate</div>
+      <div id="tokenRateValue" class="meta-value">-</div>
+    </div>
+    <div class="meta">
+      <div class="meta-label">Sale Balance</div>
+      <div id="saleBalanceValue" class="meta-value">-</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="accent" onclick="buyTokens()">Buy Tokens</button>
+  </div>
 </div>
 
-<br>
 
-<button onclick="loadCampaigns()">Load Campaigns</button>
+      <div class="card">
+        <h2>Status</h2>
+        <div id="status" class="status">Connect wallet to begin.</div>
+        <div style="height: 16px;"></div>
+        <div class="muted">Run order: Hardhat node, deploy, backend, listener, frontend.</div>
+      </div>
+    </div>
+  </section>
 
-<div id="campaignList"></div>
-
-<br>
-
-<button onclick="checkBalance()">Check Balance</button>
-<button onclick="loadHistory()">My Rewards</button>
-
-<p id="status"></p>
-
-<div id="history"></div>
-
-<!-- VIDEO SECTION -->
-<div id="adSection" style="display:none; margin-top:20px;">
-    <h3>Watching Ad...</h3>
-    <video id="adVideo" width="300" controls></video>
-    <p id="timer"></p>
-    <button id="claimBtn" disabled onclick="claimReward()">Claim Reward</button>
-</div>
-
-<script>
-
-// 🔥 UPDATE THESE AFTER DEPLOY
-const adManagerAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
-const tokenAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-
-const adManagerABI = [
-"function watchAd(uint campaignId)",
-"function createCampaign(string,string,uint,uint)",
-"function campaignCount() view returns (uint)",
-"function campaigns(uint) view returns (address,string,string,uint,uint,bool)",
-"function hasClaimed(address,uint) view returns (bool)",
-"function isAdvertiser(address) view returns (bool)"
-];
-
-const tokenABI = [
-"function balanceOf(address) view returns (uint)"
-];
-
-let provider;
-let signer;
-let contract;
-
-let currentCampaignId = null;
-
-function isConnected() {
-    if (!contract) {
-        document.getElementById("status").innerText = "Connect wallet first!";
-        return false;
-    }
-    return true;
-}
-
-// CONNECT
-async function connectWallet(){
-
-    provider = new ethers.BrowserProvider(window.ethereum);
-
-    const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts"
-    });
-
-    const userAddress = accounts[0];
-
-    signer = await provider.getSigner(userAddress);
-    contract = new ethers.Contract(adManagerAddress, adManagerABI, signer);
-
-    document.getElementById("status").innerText = "Connected: " + userAddress;
-
-    // 🔥 ROLE LOGIC
-    const isAdv = await contract.isAdvertiser(userAddress);
-
-    if(isAdv){
-        document.getElementById("role").innerText = "Role: Advertiser";
-        document.getElementById("advertiserSection").style.display = "block";
-    } else {
-        document.getElementById("role").innerText = "Role: User";
-        document.getElementById("advertiserSection").style.display = "none";
-    }
-
-    await loadCampaigns();
-    await checkBalance();
-}
-
-// CREATE CAMPAIGN
-async function createCampaign(){
-
-    if(!isConnected()) return;
-
-    const adName = document.getElementById("adName").value;
-    const reward = document.getElementById("reward").value;
-    const budget = document.getElementById("budget").value;
-    const videoUrl = document.getElementById("videoUrl").value;
-
-    const tx = await contract.createCampaign(adName, videoUrl, reward, budget);
-    await tx.wait();
-
-    document.getElementById("status").innerText = "Campaign Created!";
-
-    await loadCampaigns();
-}
-
-// LOAD CAMPAIGNS
-async function loadCampaigns(){
-
-    if(!isConnected()) return;
-
-    const address = await signer.getAddress();
-    const count = await contract.campaignCount();
-
-    let html = "";
-
-    for(let i = 1; i <= count; i++){
-
-        const c = await contract.campaigns(i);
-        const claimed = await contract.hasClaimed(address, i);
-        const isAdvertiser = address.toLowerCase() === c[0].toLowerCase();
-
-        html += `
+    <section id="advertiser" class="section">
+      <div class="grid grid-main">
         <div class="card">
-            <h4>${c[1]}</h4>
-            <p><b>Reward:</b> ${c[3]}</p>
-            <p><b>Remaining:</b> ${c[4]}</p>
+          <h2>Create Campaign</h2>
+          <div class="form-grid">
+            <div>
+              <label for="adName">Campaign Name</label>
+              <input id="adName" placeholder="Nike Ad" />
+            </div>
+            <div>
+              <label for="videoUrl">Video URL</label>
+              <input id="videoUrl" placeholder="https://example.com/ad.mp4" />
+            </div>
+            <div>
+              <label for="reward">Reward Per View</label>
+              <input id="reward" type="number" min="1" placeholder="10" />
+            </div>
+            <div>
+              <label for="budget">Campaign Budget</label>
+              <input id="budget" type="number" min="1" placeholder="1000" />
+            </div>
+          </div>
+          <div class="actions">
+            <button class="secondary" onclick="approveBudget()">Approve Budget</button>
+            <button class="accent" onclick="createCampaign()">Create Campaign</button>
+          </div>
+        </div>
 
-            ${isAdvertiser 
-              ? `<button disabled>Your Ad</button>`
-              : claimed 
-                ? `<button disabled>Already Watched</button>` 
-                : `<button onclick="watchAd(${i})">Watch Ad</button>`}
-        </div>`;
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h2 style="margin:0;">Active Campaigns</h2>
+            <button onclick="loadCampaigns()">Load Campaigns</button>
+          </div>
+          <div style="height: 14px;"></div>
+          <div id="campaignList" class="campaign-grid"></div>
+        </div>
+      </div>
+      <div style="height: 18px;"></div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <h2 style="margin:0;">My Campaigns</h2>
+    <button class="secondary" onclick="loadMyCampaigns()">Refresh My Campaigns</button>
+  </div>
+  <div style="height: 14px;"></div>
+  <div id="myCampaignList" class="campaign-grid"></div>
+</div>
+
+    </section>
+
+    <section id="rewards" class="section">
+      <div class="grid grid-2">
+        <div class="card">
+          <h2>Watch And Claim</h2>
+          <div id="watchPlaceholder" class="empty">Select a campaign from Advertiser tab.</div>
+          <div id="adSection" class="video-shell">
+            <div class="video-top">
+              <div>
+                <div id="watchingTag" class="tag">Ready</div>
+                <div id="timer">Watch full video to enable claim.</div>
+              </div>
+              <button id="claimBtn" disabled onclick="claimReward()">Claim Reward</button>
+            </div>
+            <video id="adVideo" controls controlsList="nodownload"></video>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Reward History</h2>
+          <div id="historySummary" class="summary" style="display:none;">
+            <strong>Total Earned</strong>
+            <span id="totalEarned">0 ART</span>
+          </div>
+          <div class="actions" style="margin-top:0;margin-bottom:14px;">
+            <button class="secondary" onclick="checkBalance()">Check Balance</button>
+            <button onclick="loadHistory()">Refresh History</button>
+          </div>
+          <div id="history" class="history-grid"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const config = {
+  tokenAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  campaignManagerAddress: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  adInteractionAddress: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  tokenSaleAddress: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  backendUrl: "http://localhost:3001"
+};
+
+
+    const tokenABI = [
+      "function owner() view returns (address)",
+      "function balanceOf(address) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function transfer(address to, uint256 amount) returns (bool)"
+    ];
+
+    const campaignManagerABI = [
+      "function campaignCount() view returns (uint256)",
+      "function createCampaign(string,string,uint256,uint256)",
+      "function setCampaignActive(uint256,bool)",
+      "function campaigns(uint256) view returns (address advertiser,string adName,string videoUrl,uint256 rewardPerView,uint256 remainingBudget,bool active)",
+      "function getCampaign(uint256) view returns (address advertiser,string memory adName,string memory videoUrl,uint256 rewardPerView,uint256 remainingBudget,bool active)",
+      "function withdrawRemainingBudget(uint256 campaignId)"
+
+    ];
+
+    const adInteractionABI = [
+      "function claimReward(uint256 campaignId)",
+      "function hasClaimed(address,uint256) view returns (bool)",
+      "event AdClaimed(address indexed user, uint256 indexed campaignId, uint256 reward)"
+    ];
+
+    const tokenSaleABI = [
+  "function buyTokens() payable",
+  "function tokensPerEth() view returns (uint256)",
+  "function getSaleTokenBalance() view returns (uint256)"
+
+];
+    let tokenSale;
+    let provider;
+    let signer;
+    let rewardToken;
+    let campaignManager;
+    let adInteraction;
+    let currentAccount = "";
+    let adminAccount = "";
+    let currentCampaignId = null;
+
+    const accountValue = document.getElementById("accountValue");
+    const roleValue = document.getElementById("roleValue");
+    const balanceValue = document.getElementById("balanceValue");
+    const adminValue = document.getElementById("adminValue");
+    const statusBox = document.getElementById("status");
+    const campaignList = document.getElementById("campaignList");
+    const historyBox = document.getElementById("history");
+    const historySummary = document.getElementById("historySummary");
+    const totalEarned = document.getElementById("totalEarned");
+    const watchPlaceholder = document.getElementById("watchPlaceholder");
+    const adSection = document.getElementById("adSection");
+    const watchingTag = document.getElementById("watchingTag");
+    const timer = document.getElementById("timer");
+    const claimBtn = document.getElementById("claimBtn");
+    const adVideo = document.getElementById("adVideo");
+    const tokenRateValue = document.getElementById("tokenRateValue");
+    const saleBalanceValue = document.getElementById("saleBalanceValue");
+    const myCampaignList = document.getElementById("myCampaignList");
+
+
+
+    function showSection(sectionId) {
+      document.querySelectorAll(".section").forEach((section) => {
+        section.classList.toggle("active", section.id === sectionId);
+      });
+
+      document.querySelectorAll("[data-tab-btn]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.tabBtn === sectionId);
+      });
     }
 
-    document.getElementById("campaignList").innerHTML = html;
-}
+    function setStatus(message, type = "") {
+      statusBox.className = type ? `status ${type}` : "status";
+      statusBox.textContent = message;
+    }
 
-// WATCH AD
-async function watchAd(id){
+    function ensureReady() {
+      if (!window.ethereum) {
+        setStatus("MetaMask is required.", "error");
+        return false;
+      }
 
-    if(!isConnected()) return;
+      if (!rewardToken || !campaignManager || !adInteraction || !signer) {
+        setStatus("Connect wallet first.", "error");
+        return false;
+      }
 
-    const address = await signer.getAddress();
-    const c = await contract.campaigns(id);
+      return true;
+    }
 
-    if(address.toLowerCase() === c[0].toLowerCase()){
-        alert("Advertiser cannot watch own ad");
+    function shortAddress(address) {
+      if (!address) return "Not connected";
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function attachWatchButtons() {
+      document.querySelectorAll("[data-watch-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          watchAd(Number(button.dataset.watchId));
+          showSection("rewards");
+        });
+      });
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        setStatus("MetaMask is required.", "error");
         return;
+      }
+
+      try {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+
+        currentAccount = accounts[0];
+        signer = await provider.getSigner(currentAccount);
+
+        rewardToken = new ethers.Contract(config.tokenAddress, tokenABI, signer);
+        campaignManager = new ethers.Contract(config.campaignManagerAddress, campaignManagerABI, signer);
+        adInteraction = new ethers.Contract(config.adInteractionAddress, adInteractionABI, signer);
+        tokenSale = new ethers.Contract(config.tokenSaleAddress, tokenSaleABI, signer);
+
+
+        adminAccount = await rewardToken.owner();
+
+        accountValue.textContent = currentAccount;
+        adminValue.textContent = adminAccount;
+        setStatus(`Connected ${shortAddress(currentAccount)}`, "success");
+
+        await refreshDashboard();
+      } catch (error) {
+        setStatus(error.reason || error.message || "Wallet connection failed.", "error");
+      }
     }
 
-    currentCampaignId = id;
+    async function refreshDashboard() {
+      if (!ensureReady()) return;
+      await updateRole();
+      await checkBalance();
+      await loadCampaigns();
+      await loadHistory();
+      await loadTokenSaleInfo();
+      await loadMyCampaigns();
 
-    const video = document.getElementById("adVideo");
-    video.src = c[2];
-    video.load();
-    video.play();
+    }
 
-    document.getElementById("adSection").style.display = "block";
-    document.getElementById("claimBtn").disabled = true;
-    document.getElementById("timer").innerText = "Watch full video";
+    async function updateRole() {
+      const isAdmin = currentAccount.toLowerCase() === adminAccount.toLowerCase();
+      const count = Number(await campaignManager.campaignCount());
 
-    video.onended = () => {
-        document.getElementById("claimBtn").disabled = false;
-        document.getElementById("timer").innerText = "You can now claim reward!";
-    };
-}
+      let advertiser = false;
+      for (let i = 1; i <= count; i += 1) {
+        const campaign = await campaignManager.campaigns(i);
+        if (campaign.advertiser.toLowerCase() === currentAccount.toLowerCase()) {
+          advertiser = true;
+          break;
+        }
+      }
 
-// CLAIM
-async function claimReward(){
+      roleValue.textContent = isAdmin ? "Admin" : advertiser ? "Advertiser" : "User";
+    }
 
-    const tx = await contract.watchAd(currentCampaignId);
+    async function checkBalance() {
+      if (!ensureReady()) return;
+      const balance = await rewardToken.balanceOf(currentAccount);
+      balanceValue.textContent = `${balance.toString()} ART`;
+    }
+
+    async function sendTokens() {
+      if (!ensureReady()) return;
+
+      const receiver = document.getElementById("fundAddress").value.trim();
+      const amount = document.getElementById("fundAmount").value.trim();
+
+      if (!receiver || !amount || Number(amount) <= 0) {
+        setStatus("Enter valid receiver and amount.", "error");
+        return;
+      }
+
+      try {
+        setStatus("Sending ART...", "");
+        const tx = await rewardToken.transfer(receiver, amount);
+        await tx.wait();
+
+        setStatus(`Sent ${amount} ART to ${shortAddress(receiver)}.`, "success");
+        document.getElementById("fundAddress").value = "";
+        document.getElementById("fundAmount").value = "";
+        await checkBalance();
+      } catch (error) {
+        setStatus(error.reason || error.message || "Token transfer failed.", "error");
+      }
+    }
+    async function buyTokens() {
+  if (!ensureReady()) return;
+
+  const ethAmount = document.getElementById("buyEthAmount").value.trim();
+
+  if (!ethAmount || Number(ethAmount) <= 0) {
+    setStatus("Enter a valid ETH amount.", "error");
+    return;
+  }
+
+  try {
+    setStatus("Buying ART...", "");
+    const tx = await tokenSale.buyTokens({
+      value: ethers.parseEther(ethAmount)
+    });
     await tx.wait();
 
-    document.getElementById("status").innerText = "Reward received!";
-    document.getElementById("adSection").style.display = "none";
-
-    await loadCampaigns();
+    setStatus(`Bought ART for ${ethAmount} ETH.`, "success");
+    document.getElementById("buyEthAmount").value = "";
     await checkBalance();
+  } catch (error) {
+    setStatus(error.reason || error.message || "Token purchase failed.", "error");
+  }
 }
+async function loadMyCampaigns() {
+  if (!ensureReady()) return;
 
-// BALANCE
-async function checkBalance(){
+  try {
+    const count = Number(await campaignManager.campaignCount());
+    const cards = [];
 
-    if(!isConnected()) return;
+    for (let i = 1; i <= count; i += 1) {
+      const campaign = await campaignManager.campaigns(i);
+      const isOwn = currentAccount.toLowerCase() === campaign.advertiser.toLowerCase();
 
-    const token = new ethers.Contract(tokenAddress, tokenABI, signer);
-    const address = await signer.getAddress();
-    const balance = await token.balanceOf(address);
+      if (!isOwn) continue;
 
-    document.getElementById("status").innerText = "Your ART Balance: " + balance;
-}
+      const actionHtml = campaign.active
+        ? `<button class="secondary" onclick="deactivateCampaign(${i})">Deactivate</button>`
+        : `<button class="secondary" onclick="withdrawRemainingBudget(${i})">Withdraw Budget</button>`;
 
-// HISTORY
-async function loadHistory(){
+      const statusText = campaign.active ? "Active" : "Inactive";
 
-    if (!contract) return;
-
-    const address = await signer.getAddress();
-
-    const res = await fetch(`http://localhost:3001/history/${address}`);
-    const data = await res.json();
-
-    const div = document.getElementById("history");
-    div.innerHTML = "<h3>My Rewards</h3>";
-
-    if (data.length === 0) {
-        div.innerHTML += "<p>No rewards yet</p>";
-        return;
-    }
-
-    let total = 0;
-
-    for (const tx of data) {
-
-        const c = await contract.campaigns(tx.campaign_id);
-        const name = c[1];
-
-        total += Number(tx.reward);
-
-        div.innerHTML += `
-            <div class="card">
-                <p><b>Campaign:</b> ${name}</p>
-                <p><b>Reward:</b> ${tx.reward}</p>
-                <p><b>Time:</b> ${new Date(tx.timestamp).toLocaleString()}</p>
+      cards.push(`
+        <div class="campaign-card">
+          <div class="tag">Campaign #${i}</div>
+          <h3>${escapeHtml(campaign.adName)}</h3>
+          <div class="campaign-meta">
+            <div>
+              <strong>Reward</strong>
+              ${campaign.rewardPerView.toString()} ART
             </div>
-        `;
+            <div>
+              <strong>Remaining Budget</strong>
+              ${campaign.remainingBudget.toString()} ART
+            </div>
+            <div>
+              <strong>Status</strong>
+              ${escapeHtml(statusText)}
+            </div>
+            <div>
+              <strong>Video URL</strong>
+              ${escapeHtml(campaign.videoUrl)}
+            </div>
+          </div>
+          <div class="actions">${actionHtml}</div>
+        </div>
+      `);
     }
 
-    div.innerHTML += `<h3>Total Earned: ${total} ART</h3>`;
+    myCampaignList.innerHTML = cards.length
+      ? cards.join("")
+      : '<div class="empty">No campaigns created by this wallet.</div>';
+  } catch (error) {
+    setStatus(error.reason || error.message || "Could not load your campaigns.", "error");
+  }
 }
 
-// ACCOUNT CHANGE
-window.ethereum?.on("accountsChanged", () => {
-    location.reload();
-});
+async function deactivateCampaign(campaignId) {
+  if (!ensureReady()) return;
 
-</script>
+  try {
+    setStatus("Deactivating campaign...", "");
+    const tx = await campaignManager.setCampaignActive(campaignId, false);
+    await tx.wait();
 
+    setStatus(`Campaign #${campaignId} deactivated.`, "success");
+    await loadCampaigns();
+  } catch (error) {
+    setStatus(error.reason || error.message || "Could not deactivate campaign.", "error");
+  }
+}
+
+async function withdrawRemainingBudget(campaignId) {
+  if (!ensureReady()) return;
+
+  try {
+    setStatus("Withdrawing remaining budget...", "");
+    const tx = await campaignManager.withdrawRemainingBudget(campaignId);
+    await tx.wait();
+
+    setStatus(`Remaining budget withdrawn from campaign #${campaignId}.`, "success");
+    await checkBalance();
+    await loadCampaigns();
+  } catch (error) {
+    setStatus(error.reason || error.message || "Could not withdraw budget.", "error");
+  }
+}
+
+
+
+    function getCampaignFormValues() {
+      return {
+        adName: document.getElementById("adName").value.trim(),
+        videoUrl: document.getElementById("videoUrl").value.trim(),
+        reward: document.getElementById("reward").value.trim(),
+        budget: document.getElementById("budget").value.trim()
+      };
+    }
+
+    function validateCampaignForm() {
+      const { adName, videoUrl, reward, budget } = getCampaignFormValues();
+
+      if (!adName || !videoUrl || !reward || !budget) {
+        throw new Error("Fill all campaign fields.");
+      }
+
+      if (Number(reward) <= 0 || Number(budget) <= 0) {
+        throw new Error("Reward and budget must be greater than zero.");
+      }
+
+      if (Number(budget) < Number(reward)) {
+        throw new Error("Budget must be at least reward amount.");
+      }
+
+      return { adName, videoUrl, reward, budget };
+    }
+
+    async function approveBudget() {
+      if (!ensureReady()) return;
+
+      try {
+        const { budget } = validateCampaignForm();
+        setStatus("Approving budget...", "");
+        const tx = await rewardToken.approve(config.campaignManagerAddress, budget);
+        await tx.wait();
+        setStatus(`Approved ${budget} ART.`, "success");
+      } catch (error) {
+        setStatus(error.reason || error.message || "Approval failed.", "error");
+      }
+    }
+
+    async function createCampaign() {
+      if (!ensureReady()) return;
+
+      try {
+        const { adName, videoUrl, reward, budget } = validateCampaignForm();
+        const allowance = await rewardToken.allowance(currentAccount, config.campaignManagerAddress);
+
+        if (allowance < BigInt(budget)) {
+          throw new Error("Approve budget first.");
+        }
+
+        setStatus("Creating campaign...", "");
+        const tx = await campaignManager.createCampaign(adName, videoUrl, reward, budget);
+        await tx.wait();
+
+        setStatus(`Campaign "${adName}" created.`, "success");
+
+        document.getElementById("adName").value = "";
+        document.getElementById("videoUrl").value = "";
+        document.getElementById("reward").value = "";
+        document.getElementById("budget").value = "";
+
+        await refreshDashboard();
+      } catch (error) {
+        setStatus(error.reason || error.message || "Campaign creation failed.", "error");
+      }
+    }
+
+   async function loadCampaigns() {
+  if (!ensureReady()) return;
+
+  try {
+    const count = Number(await campaignManager.campaignCount());
+
+    if (count === 0) {
+      campaignList.innerHTML = '<div class="empty">No campaigns available.</div>';
+      return;
+    }
+
+    const cards = [];
+
+    for (let i = 1; i <= count; i += 1) {
+      const campaign = await campaignManager.campaigns(i);
+
+      if (!campaign.active) {
+        continue;
+      }
+
+      const claimed = await adInteraction.hasClaimed(currentAccount, i);
+      const isOwn = currentAccount.toLowerCase() === campaign.advertiser.toLowerCase();
+
+      let actionHtml = '<button disabled>Unavailable</button>';
+      let statusText = "Active";
+
+      if (isOwn) {
+        statusText = "Your Campaign";
+        actionHtml = `<button class="secondary" onclick="deactivateCampaign(${i})">Deactivate</button>`;
+      } else if (claimed) {
+        statusText = "Reward already claimed";
+        actionHtml = '<button disabled>Already Watched</button>';
+      } else {
+        actionHtml = `<button data-watch-id="${i}">Watch Ad</button>`;
+      }
+
+      cards.push(`
+        <div class="campaign-card">
+          <div class="tag">Campaign #${i}</div>
+          <h3>${escapeHtml(campaign.adName)}</h3>
+          <div class="campaign-meta">
+            <div>
+              <strong>Reward</strong>
+              ${campaign.rewardPerView.toString()} ART
+            </div>
+            <div>
+              <strong>Remaining Budget</strong>
+              ${campaign.remainingBudget.toString()} ART
+            </div>
+            <div>
+              <strong>Advertiser</strong>
+              ${escapeHtml(shortAddress(campaign.advertiser))}
+            </div>
+            <div>
+              <strong>Status</strong>
+              ${escapeHtml(statusText)}
+            </div>
+          </div>
+          <div class="actions">${actionHtml}</div>
+        </div>
+      `);
+    }
+
+    campaignList.innerHTML = cards.length
+      ? cards.join("")
+      : '<div class="empty">No active campaigns available.</div>';
+
+    attachWatchButtons();
+  } catch (error) {
+    setStatus(error.reason || error.message || "Could not load campaigns.", "error");
+  }
+}
+
+
+    async function watchAd(campaignId) {
+      if (!ensureReady()) return;
+
+      try {
+        const campaign = await campaignManager.campaigns(campaignId);
+
+        if (currentAccount.toLowerCase() === campaign.advertiser.toLowerCase()) {
+          throw new Error("Advertiser cannot claim own ad.");
+        }
+
+        currentCampaignId = campaignId;
+        watchingTag.textContent = campaign.adName;
+        timer.textContent = "Watch full video to enable claim.";
+        claimBtn.disabled = true;
+
+        watchPlaceholder.style.display = "none";
+        adSection.style.display = "block";
+        adVideo.src = campaign.videoUrl;
+        adVideo.load();
+        await adVideo.play();
+
+        adVideo.onended = () => {
+          claimBtn.disabled = false;
+          timer.textContent = "Video completed. Claim is enabled.";
+          setStatus("Video completed. Claim reward now.", "success");
+        };
+      } catch (error) {
+        setStatus(error.reason || error.message || "Could not start video.", "error");
+      }
+    }
+
+    async function waitForHistorySync(txHash) {
+      for (let i = 0; i < 8; i += 1) {
+        try {
+          const response = await fetch(`${config.backendUrl}/history/${currentAccount}`);
+          if (response.ok) {
+            const rows = await response.json();
+            const found = rows.some((row) => (row.tx_hash || "").toLowerCase() === txHash.toLowerCase());
+            if (found) return true;
+          }
+        } catch (_) {}
+
+        await sleep(1500);
+      }
+
+      return false;
+    }
+
+    async function claimReward() {
+      if (!ensureReady() || currentCampaignId === null) return;
+
+      try {
+        setStatus("Claiming reward...", "");
+        const tx = await adInteraction.claimReward(currentCampaignId);
+        const receipt = await tx.wait();
+
+        setStatus("Reward claimed on-chain. Syncing history...", "success");
+
+        await waitForHistorySync(receipt.hash);
+        await checkBalance();
+        await loadCampaigns();
+        await loadHistory();
+
+        claimBtn.disabled = true;
+        currentCampaignId = null;
+        adVideo.pause();
+        adVideo.removeAttribute("src");
+        adVideo.load();
+        adSection.style.display = "none";
+        watchPlaceholder.style.display = "block";
+        watchingTag.textContent = "Ready";
+        timer.textContent = "Watch full video to enable claim.";
+      } catch (error) {
+        setStatus(error.reason || error.message || "Reward claim failed.", "error");
+      }
+    }
+
+    async function fetchBackendHistory() {
+      try {
+        const response = await fetch(`${config.backendUrl}/history/${currentAccount}`);
+        if (!response.ok) return [];
+        return await response.json();
+      } catch {
+        return [];
+      }
+    }
+
+    async function fetchChainHistory() {
+      try {
+        const filter = adInteraction.filters.AdClaimed(currentAccount);
+        const events = await adInteraction.queryFilter(filter, 0, "latest");
+
+        return events.map((event) => ({
+          user_address: event.args.user,
+          campaign_id: Number(event.args.campaignId),
+          reward: Number(event.args.reward),
+          tx_hash: event.transactionHash,
+          timestamp: null
+        }));
+      } catch {
+        return [];
+      }
+    }
+   async function loadTokenSaleInfo() {
+  if (!ensureReady()) return;
+
+  try {
+    const rate = await tokenSale.tokensPerEth();
+    const saleBalance = await tokenSale.getSaleTokenBalance();
+
+    tokenRateValue.textContent = `${rate.toString()} ART / ETH`;
+    saleBalanceValue.textContent = `${saleBalance.toString()} ART`;
+  } catch (error) {
+    setStatus(error.reason || error.message || "Could not load token sale info.", "error");
+  }
+}
+
+    async function loadHistory() {
+      if (!ensureReady()) return;
+
+      try {
+        const backendRows = await fetchBackendHistory();
+        const chainRows = await fetchChainHistory();
+
+        const merged = new Map();
+
+        for (const row of [...backendRows, ...chainRows]) {
+          const key = `${(row.tx_hash || "nohash").toLowerCase()}-${row.campaign_id}-${row.reward}`;
+          if (!merged.has(key)) {
+            merged.set(key, row);
+          }
+        }
+
+        const rows = Array.from(merged.values());
+
+        if (!rows.length) {
+          historySummary.style.display = "none";
+          historyBox.innerHTML = '<div class="empty">No rewards claimed for this wallet.</div>';
+          return;
+        }
+
+        let total = 0;
+        const cards = [];
+
+        for (const row of rows) {
+          const campaign = await campaignManager.campaigns(row.campaign_id);
+          total += Number(row.reward);
+
+          cards.push(`
+            <div class="history-card">
+              <h3>${escapeHtml(campaign.adName)}</h3>
+              <div class="history-meta">
+                <div>
+                  <strong>Campaign ID</strong>
+                  ${row.campaign_id}
+                </div>
+                <div>
+                  <strong>Reward</strong>
+                  ${row.reward} ART
+                </div>
+                <div>
+                  <strong>Transaction</strong>
+                  ${row.tx_hash ? escapeHtml(shortAddress(row.tx_hash)) : "Pending sync"}
+                </div>
+                <div>
+                  <strong>Time</strong>
+                  ${row.timestamp ? new Date(row.timestamp).toLocaleString() : "From blockchain event"}
+                </div>
+              </div>
+            </div>
+          `);
+        }
+
+        totalEarned.textContent = `${total} ART`;
+        historySummary.style.display = "block";
+        historyBox.innerHTML = cards.join("");
+      } catch (error) {
+        setStatus(error.reason || error.message || "Could not load history.", "error");
+      }
+    }
+
+    window.ethereum?.on("accountsChanged", async (accounts) => {
+      if (!accounts.length) {
+        location.reload();
+        return;
+      }
+
+      currentAccount = accounts[0];
+      signer = await provider.getSigner(currentAccount);
+
+      rewardToken = new ethers.Contract(config.tokenAddress, tokenABI, signer);
+      campaignManager = new ethers.Contract(config.campaignManagerAddress, campaignManagerABI, signer);
+      adInteraction = new ethers.Contract(config.adInteractionAddress, adInteractionABI, signer);
+      tokenSale = new ethers.Contract(config.tokenSaleAddress, tokenSaleABI, signer);
+
+      accountValue.textContent = currentAccount;
+      await refreshDashboard();
+      setStatus(`Switched to ${shortAddress(currentAccount)}`, "success");
+    });
+  </script>
 </body>
 </html>
