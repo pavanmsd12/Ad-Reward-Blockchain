@@ -168,9 +168,10 @@
       gap: 14px;
     }
 
-    .wallet-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
+   .wallet-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 
     .meta {
       background: var(--panel-2);
@@ -386,17 +387,10 @@
         <div class="meta-label">Connected Account</div>
         <div id="accountValue" class="meta-value">Not connected</div>
       </div>
-      <div class="meta">
-        <div class="meta-label">Role</div>
-        <div id="roleValue" class="meta-value">User</div>
-      </div>
+     
       <div class="meta">
         <div class="meta-label">ART Balance</div>
         <div id="balanceValue" class="meta-value">0 ART</div>
-      </div>
-      <div class="meta">
-        <div class="meta-label">Token Owner</div>
-        <div id="adminValue" class="meta-value">Unknown</div>
       </div>
     </div>
     <div class="actions">
@@ -408,57 +402,58 @@
 
   <div style="height: 18px;"></div>
 
-  <section id="overview" class="section active">
-    <div class="grid grid-2">
-      <div class="card">
-        <h2>Send Tokens</h2>
-        <p class="muted">Transfer ART from the connected wallet to another wallet.</p>
-        <div class="form-grid">
-          <div>
-            <label for="fundAddress">Receiver Address</label>
-            <input id="fundAddress" placeholder="0x..." />
-          </div>
-          <div>
-            <label for="fundAmount">Token Amount</label>
-            <input id="fundAmount" type="number" min="1" placeholder="1000" />
-          </div>
+ <section id="overview" class="section active">
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Buy ART</h2>
+      <p class="muted">Purchase ART on-chain using ETH, then use it to fund campaigns.</p>
+      <p class="muted">For this demo, ART is sold through the TokenSale contract funded during deployment.</p>
+      <div class="form-grid">
+        <div>
+          <label for="buyEthAmount">ETH Amount</label>
+          <input id="buyEthAmount" type="number" min="0" step="0.001" placeholder="0.1" />
         </div>
-        <div class="actions">
-          <button class="accent" onclick="sendTokens()">Send Tokens</button>
+        <div class="meta">
+          <div class="meta-label">Rate</div>
+          <div id="tokenRateValue" class="meta-value">-</div>
+        </div>
+        <div class="meta">
+          <div class="meta-label">Sale Balance</div>
+          <div id="saleBalanceValue" class="meta-value">-</div>
         </div>
       </div>
+      <div class="actions">
+        <button class="accent" onclick="buyTokens()">Buy ART</button>
+      </div>
+    </div>
 
     <div class="card">
-  <h2>Buy ART</h2>
-  <p class="muted">Purchase ART on-chain using ETH, then use it to fund campaigns.</p>
-  <div class="form-grid">
-    <div>
-      <label for="buyEthAmount">ETH Amount</label>
-      <input id="buyEthAmount" type="number" min="0" step="0.001" placeholder="0.1" />
-    </div>
-    <div class="meta">
-      <div class="meta-label">Rate</div>
-      <div id="tokenRateValue" class="meta-value">-</div>
-    </div>
-    <div class="meta">
-      <div class="meta-label">Sale Balance</div>
-      <div id="saleBalanceValue" class="meta-value">-</div>
-    </div>
-  </div>
-  <div class="actions">
-    <button class="accent" onclick="buyTokens()">Buy Tokens</button>
-  </div>
-</div>
-
-
-      <div class="card">
-        <h2>Status</h2>
-        <div id="status" class="status">Connect wallet to begin.</div>
-        <div style="height: 16px;"></div>
-        <div class="muted">Local demo flow: buy ART, approve budget, create campaign, watch ad, claim reward.</div>
+      <h2>Transfer ART</h2>
+      <p class="muted">Optional wallet-to-wallet ART transfer.</p>
+      <div class="form-grid">
+        <div>
+          <label for="fundAddress">Receiver Address</label>
+          <input id="fundAddress" placeholder="0x..." />
+        </div>
+        <div>
+          <label for="fundAmount">Token Amount</label>
+          <input id="fundAmount" type="number" min="1" placeholder="1000" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="accent" onclick="sendTokens()">Transfer ART</button>
       </div>
     </div>
-  </section>
+
+    <div class="card">
+      <h2>Status</h2>
+      <div id="status" class="status">Connect wallet to begin.</div>
+      <div style="height: 16px;"></div>
+      <div class="muted">Local demo flow: buy ART, approve budget, create campaign, watch ad, claim reward.</div>
+    </div>
+  </div>
+</section>
+
 
     <section id="advertiser" class="section">
       <div class="grid grid-main">
@@ -484,8 +479,8 @@
             </div>
           </div>
           <div class="actions">
-            <button class="secondary" onclick="approveBudget()">Approve Budget</button>
-            <button class="accent" onclick="createCampaign()">Create Campaign</button>
+            <button class="secondary" onclick="approveBudget()">1.Approve Budget</button>
+            <button class="accent" onclick="createCampaign()">2.Create Campaign</button>
           </div>
         </div>
 
@@ -515,6 +510,7 @@
       <div class="grid grid-2">
         <div class="card">
           <h2>Watch And Claim</h2>
+          <p class="muted">Choose a campaign, watch the full ad, then claim your reward.</p>
           <div id="watchPlaceholder" class="empty">Select a campaign from Advertiser tab.</div>
           <div id="adSection" class="video-shell">
             <div class="video-top">
@@ -530,6 +526,7 @@
 
         <div class="card">
           <h2>Reward History</h2>
+          <p class="muted">Your claimed rewards from blockchain and indexed history.</p>
           <div id="historySummary" class="summary" style="display:none;">
             <strong>Total Earned</strong>
             <span id="totalEarned">0 ART</span>
@@ -591,13 +588,10 @@
     let campaignManager;
     let adInteraction;
     let currentAccount = "";
-    let adminAccount = "";
     let currentCampaignId = null;
 
     const accountValue = document.getElementById("accountValue");
-    const roleValue = document.getElementById("roleValue");
     const balanceValue = document.getElementById("balanceValue");
-    const adminValue = document.getElementById("adminValue");
     const statusBox = document.getElementById("status");
     const campaignList = document.getElementById("campaignList");
     const historyBox = document.getElementById("history");
@@ -689,14 +683,10 @@
         adInteraction = new ethers.Contract(config.adInteractionAddress, adInteractionABI, signer);
         tokenSale = new ethers.Contract(config.tokenSaleAddress, tokenSaleABI, signer);
 
-
-        adminAccount = await rewardToken.owner();
-
         accountValue.textContent = currentAccount;
-        adminValue.textContent = adminAccount;
-        setStatus(`Connected ${shortAddress(currentAccount)}`, "success");
+setStatus(`Connected ${shortAddress(currentAccount)}`, "success");
 
-        await refreshDashboard();
+await refreshDashboard();
       } catch (error) {
         setStatus(error.reason || error.message || "Wallet connection failed.", "error");
       }
@@ -704,7 +694,6 @@
 
     async function refreshDashboard() {
       if (!ensureReady()) return;
-      await updateRole();
       await checkBalance();
       await loadCampaigns();
       await loadHistory();
@@ -713,21 +702,7 @@
 
     }
 
-    async function updateRole() {
-      const isAdmin = currentAccount.toLowerCase() === adminAccount.toLowerCase();
-      const count = Number(await campaignManager.campaignCount());
-
-      let advertiser = false;
-      for (let i = 1; i <= count; i += 1) {
-        const campaign = await campaignManager.campaigns(i);
-        if (campaign.advertiser.toLowerCase() === currentAccount.toLowerCase()) {
-          advertiser = true;
-          break;
-        }
-      }
-
-      roleValue.textContent = isAdmin ? "Admin" : advertiser ? "Advertiser" : "User";
-    }
+   
 
     async function checkBalance() {
       if (!ensureReady()) return;

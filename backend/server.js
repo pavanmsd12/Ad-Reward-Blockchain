@@ -169,14 +169,17 @@ app.post("/transaction", async (req, res) => {
   }
 
   try {
-    await pool.query(
-      `
-        INSERT INTO transactions (user_address, campaign_id, reward, event_key, tx_hash, block_number)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (event_key) DO NOTHING
-      `,
-      [user.toLowerCase(), Number(campaignId), Number(reward), eventKey || null, txHash || null, blockNumber ?? null]
-    );
+   await pool.query(
+  `
+    INSERT INTO transactions (user_address, campaign_id, reward, event_key, tx_hash, block_number)
+    SELECT $1, $2, $3, $4, $5, $6
+    WHERE NOT EXISTS (
+      SELECT 1 FROM transactions WHERE event_key = $4
+    )
+  `,
+  [user.toLowerCase(), Number(campaignId), Number(reward), eventKey || null, txHash || null, blockNumber ?? null]
+);
+
 
     return res.json({ success: true });
   } catch (error) {
