@@ -371,7 +371,7 @@
   <div class="topbar">
     <div class="brand">
       <h1>AdReward Platform</h1>
-      <p>Advertisers fund campaigns. Users watch and earn ART.</p>
+      <p>Buy ART, fund campaigns, and earn on-chain rewards.</p>
     </div>
     <div class="nav">
       <button class="active" data-tab-btn="overview" onclick="showSection('overview')">Overview</button>
@@ -395,7 +395,7 @@
         <div id="balanceValue" class="meta-value">0 ART</div>
       </div>
       <div class="meta">
-        <div class="meta-label">Admin Wallet</div>
+        <div class="meta-label">Token Owner</div>
         <div id="adminValue" class="meta-value">Unknown</div>
       </div>
     </div>
@@ -430,7 +430,7 @@
 
     <div class="card">
   <h2>Buy ART</h2>
-  <p class="muted">Buy ART directly on-chain using ETH.</p>
+  <p class="muted">Purchase ART on-chain using ETH, then use it to fund campaigns.</p>
   <div class="form-grid">
     <div>
       <label for="buyEthAmount">ETH Amount</label>
@@ -455,7 +455,7 @@
         <h2>Status</h2>
         <div id="status" class="status">Connect wallet to begin.</div>
         <div style="height: 16px;"></div>
-        <div class="muted">Run order: Hardhat node, deploy, backend, listener, frontend.</div>
+        <div class="muted">Local demo flow: buy ART, approve budget, create campaign, watch ad, claim reward.</div>
       </div>
     </div>
   </section>
@@ -464,6 +464,7 @@
       <div class="grid grid-main">
         <div class="card">
           <h2>Create Campaign</h2>
+          <p class="muted">Step 1: Buy ART or receive ART. Step 2: Approve budget. Step 3: Create campaign.</p>
           <div class="form-grid">
             <div>
               <label for="adName">Campaign Name</label>
@@ -1012,36 +1013,68 @@ async function withdrawRemainingBudget(campaignId) {
 }
 
 
-    async function watchAd(campaignId) {
-      if (!ensureReady()) return;
+   async function watchAd(campaignId) {
+  if (!ensureReady()) return;
 
+  try {
+    const campaign = await campaignManager.campaigns(campaignId);
+
+    if (currentAccount.toLowerCase() === campaign.advertiser.toLowerCase()) {
+      throw new Error("Advertiser cannot claim own ad.");
+    }
+
+    currentCampaignId = campaignId;
+    watchingTag.textContent = campaign.adName;
+    timer.textContent = "Watch full video to enable claim.";
+    claimBtn.disabled = true;
+
+    const startResponse = await fetch(`${config.backendUrl}/watch/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user: currentAccount,
+        campaignId
+      })
+    });
+
+    if (!startResponse.ok) {
+      throw new Error("Failed to start watch session.");
+    }
+
+    watchPlaceholder.style.display = "none";
+    adSection.style.display = "block";
+    adVideo.src = campaign.videoUrl;
+    adVideo.load();
+    await adVideo.play();
+
+    adVideo.onended = async () => {
       try {
-        const campaign = await campaignManager.campaigns(campaignId);
+        const completeResponse = await fetch(`${config.backendUrl}/watch/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: currentAccount,
+            campaignId
+          })
+        });
 
-        if (currentAccount.toLowerCase() === campaign.advertiser.toLowerCase()) {
-          throw new Error("Advertiser cannot claim own ad.");
+        if (!completeResponse.ok) {
+          throw new Error("Failed to complete watch session.");
         }
 
-        currentCampaignId = campaignId;
-        watchingTag.textContent = campaign.adName;
-        timer.textContent = "Watch full video to enable claim.";
-        claimBtn.disabled = true;
-
-        watchPlaceholder.style.display = "none";
-        adSection.style.display = "block";
-        adVideo.src = campaign.videoUrl;
-        adVideo.load();
-        await adVideo.play();
-
-        adVideo.onended = () => {
-          claimBtn.disabled = false;
-          timer.textContent = "Video completed. Claim is enabled.";
-          setStatus("Video completed. Claim reward now.", "success");
-        };
+        claimBtn.disabled = false;
+        timer.textContent = "Video completed. Claim is enabled.";
+        setStatus("Video completed. Claim reward now.", "success");
       } catch (error) {
-        setStatus(error.reason || error.message || "Could not start video.", "error");
+        claimBtn.disabled = true;
+        setStatus(error.message || "Watch session completion failed.", "error");
       }
-    }
+    };
+  } catch (error) {
+    setStatus(error.reason || error.message || "Could not start video.", "error");
+  }
+}
+
 
     async function waitForHistorySync(txHash) {
       for (let i = 0; i < 8; i += 1) {
@@ -1060,34 +1093,50 @@ async function withdrawRemainingBudget(campaignId) {
       return false;
     }
 
-    async function claimReward() {
-      if (!ensureReady() || currentCampaignId === null) return;
+   async function claimReward() {
+  if (!ensureReady() || currentCampaignId === null) return;
 
-      try {
-        setStatus("Claiming reward...", "");
-        const tx = await adInteraction.claimReward(currentCampaignId);
-        const receipt = await tx.wait();
+  try {
+    const validResponse = await fetch(
+      `${config.backendUrl}/watch/valid/${currentAccount}/${currentCampaignId}`
+    );
 
-        setStatus("Reward claimed on-chain. Syncing history...", "success");
-
-        await waitForHistorySync(receipt.hash);
-        await checkBalance();
-        await loadCampaigns();
-        await loadHistory();
-
-        claimBtn.disabled = true;
-        currentCampaignId = null;
-        adVideo.pause();
-        adVideo.removeAttribute("src");
-        adVideo.load();
-        adSection.style.display = "none";
-        watchPlaceholder.style.display = "block";
-        watchingTag.textContent = "Ready";
-        timer.textContent = "Watch full video to enable claim.";
-      } catch (error) {
-        setStatus(error.reason || error.message || "Reward claim failed.", "error");
-      }
+    if (!validResponse.ok) {
+      throw new Error("Could not validate watch session.");
     }
+
+    const validation = await validResponse.json();
+
+    if (!validation.valid) {
+      throw new Error("Watch session is not valid. Watch the full ad first.");
+    }
+
+    setStatus("Claiming reward...", "");
+    const tx = await adInteraction.claimReward(currentCampaignId);
+    const receipt = await tx.wait();
+
+    setStatus("Reward claimed on-chain. Syncing history...", "success");
+
+    await waitForHistorySync(receipt.hash);
+    await checkBalance();
+    await loadCampaigns();
+    await loadMyCampaigns();
+    await loadHistory();
+
+    claimBtn.disabled = true;
+    currentCampaignId = null;
+    adVideo.pause();
+    adVideo.removeAttribute("src");
+    adVideo.load();
+    adSection.style.display = "none";
+    watchPlaceholder.style.display = "block";
+    watchingTag.textContent = "Ready";
+    timer.textContent = "Watch full video to enable claim.";
+  } catch (error) {
+    setStatus(error.reason || error.message || "Reward claim failed.", "error");
+  }
+}
+
 
     async function fetchBackendHistory() {
       try {

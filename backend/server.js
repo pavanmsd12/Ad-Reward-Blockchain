@@ -30,6 +30,16 @@ async function initializeDatabase() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS watch_sessions (
+      id SERIAL PRIMARY KEY,
+      user_address TEXT NOT NULL,
+      campaign_id INTEGER NOT NULL,
+      started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      completed BOOLEAN DEFAULT FALSE
+    )
+  `);
+
   await pool.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS event_key TEXT");
   await pool.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS tx_hash TEXT");
   await pool.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS block_number INTEGER");
@@ -45,6 +55,102 @@ app.get("/", (req, res) => {
     status: "ok",
     service: "adreward-backend",
   });
+});
+
+app.post("/watch/start", async (req, res) => {
+  const { user, campaignId } = req.body;
+
+  if (!isValidAddress(user)) {
+    return res.status(400).json({ error: "Invalid wallet address." });
+  }
+
+  if (!Number.isInteger(Number(campaignId)) || Number(campaignId) <= 0) {
+    return res.status(400).json({ error: "Invalid campaign id." });
+  }
+
+  try {
+    await pool.query(
+      `
+        INSERT INTO watch_sessions (user_address, campaign_id, completed)
+        VALUES ($1, $2, FALSE)
+      `,
+      [user.toLowerCase(), Number(campaignId)]
+    );
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to start watch session:", error);
+    return res.status(500).json({ error: "Failed to start watch session." });
+  }
+});
+
+app.post("/watch/complete", async (req, res) => {
+  const { user, campaignId } = req.body;
+
+  if (!isValidAddress(user)) {
+    return res.status(400).json({ error: "Invalid wallet address." });
+  }
+
+  if (!Number.isInteger(Number(campaignId)) || Number(campaignId) <= 0) {
+    return res.status(400).json({ error: "Invalid campaign id." });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        UPDATE watch_sessions
+        SET completed = TRUE
+        WHERE id = (
+          SELECT id
+          FROM watch_sessions
+          WHERE user_address = $1 AND campaign_id = $2 AND completed = FALSE
+          ORDER BY started_at DESC
+          LIMIT 1
+        )
+        RETURNING id
+      `,
+      [user.toLowerCase(), Number(campaignId)]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).json({ error: "No active watch session found." });
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to complete watch session:", error);
+    return res.status(500).json({ error: "Failed to complete watch session." });
+  }
+});
+
+app.get("/watch/valid/:address/:campaignId", async (req, res) => {
+  const { address, campaignId } = req.params;
+
+  if (!isValidAddress(address)) {
+    return res.status(400).json({ error: "Invalid wallet address." });
+  }
+
+  if (!Number.isInteger(Number(campaignId)) || Number(campaignId) <= 0) {
+    return res.status(400).json({ error: "Invalid campaign id." });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        SELECT id
+        FROM watch_sessions
+        WHERE user_address = $1 AND campaign_id = $2 AND completed = TRUE
+        ORDER BY started_at DESC
+        LIMIT 1
+      `,
+      [address.toLowerCase(), Number(campaignId)]
+    );
+
+    return res.json({ valid: result.rowCount > 0 });
+  } catch (error) {
+    console.error("Failed to validate watch session:", error);
+    return res.status(500).json({ error: "Failed to validate watch session." });
+  }
 });
 
 app.post("/transaction", async (req, res) => {
