@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 
 async function main() {
   const initialSupply = 1_000_000;
-  const saleSupply = 500_000;
+  const saleSupply = 1_000_000;
   const tokensPerEth = 1000;
 
   const RewardToken = await ethers.getContractFactory("RewardToken");

@@ -393,39 +393,42 @@
         <div id="balanceValue" class="meta-value">0 ART</div>
       </div>
     </div>
-    <div class="actions">
-      <button onclick="connectWallet()">Connect Wallet</button>
-      <button class="secondary" onclick="refreshDashboard()">Refresh</button>
-      <button class="secondary" onclick="loadHistory()">My Rewards</button>
-    </div>
+   <div class="actions">
+  <button onclick="connectWallet()">Connect Wallet</button>
+</div>
+
   </section>
 
   <div style="height: 18px;"></div>
 
  <section id="overview" class="section active">
   <div class="grid grid-2">
-    <div class="card">
-      <h2>Buy ART</h2>
-      <p class="muted">Purchase ART on-chain using ETH, then use it to fund campaigns.</p>
-      <p class="muted">For this demo, ART is sold through the TokenSale contract funded during deployment.</p>
-      <div class="form-grid">
-        <div>
-          <label for="buyEthAmount">ETH Amount</label>
-          <input id="buyEthAmount" type="number" min="0" step="0.001" placeholder="0.1" />
-        </div>
-        <div class="meta">
-          <div class="meta-label">Rate</div>
-          <div id="tokenRateValue" class="meta-value">-</div>
-        </div>
-        <div class="meta">
-          <div class="meta-label">Sale Balance</div>
-          <div id="saleBalanceValue" class="meta-value">-</div>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="accent" onclick="buyTokens()">Buy ART</button>
-      </div>
+   <div class="card">
+  <h2>Buy ART</h2>
+  <p class="muted">Purchase ART on-chain using ETH, then use it to fund campaigns.</p>
+  <p class="muted">For this demo, ART is sold through the TokenSale contract funded during deployment.</p>
+  <div class="form-grid">
+    <div>
+      <label for="buyEthAmount">ETH Amount</label>
+      <input id="buyEthAmount" type="number" min="0" step="0.001" placeholder="0.1" />
     </div>
+    <div class="meta">
+      <div class="meta-label">Rate</div>
+      <div id="tokenRateValue" class="meta-value">-</div>
+    </div>
+    <div class="meta">
+      <div class="meta-label">Sale Token Balance</div>
+      <div id="saleBalanceValue" class="meta-value">-</div>
+    </div>
+    <div class="meta">
+      <div class="meta-label">Sale ETH Balance</div>
+      <div id="saleEthBalanceValue" class="meta-value">-</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="accent" onclick="buyTokens()">Buy ART</button>
+  </div>
+</div>
 
     <div class="card">
       <h2>Transfer ART</h2>
@@ -444,6 +447,21 @@
         <button class="accent" onclick="sendTokens()">Transfer ART</button>
       </div>
     </div>
+    <div class="card">
+  <h2>Redeem ART</h2>
+  <p class="muted">Approve ART first, then redeem it back to ETH from the TokenSale contract.</p>
+  <div class="form-grid">
+    <div>
+      <label for="sellTokenAmount">ART Amount</label>
+      <input id="sellTokenAmount" type="number" min="1" placeholder="100" />
+    </div>
+  </div>
+  <div class="actions">
+    <button class="secondary" onclick="approveSellTokens()">Approve ART for Sell</button>
+    <button class="accent" onclick="sellTokens()">Sell ART</button>
+  </div>
+</div>
+
 
     <div class="card">
       <h2>Status</h2>
@@ -574,13 +592,14 @@
       "function hasClaimed(address,uint256) view returns (bool)",
       "event AdClaimed(address indexed user, uint256 indexed campaignId, uint256 reward)"
     ];
-
-    const tokenSaleABI = [
+const tokenSaleABI = [
   "function buyTokens() payable",
+  "function sellTokens(uint256 tokenAmount)",
   "function tokensPerEth() view returns (uint256)",
-  "function getSaleTokenBalance() view returns (uint256)"
-
+  "function getSaleTokenBalance() view returns (uint256)",
+  "function getSaleEthBalance() view returns (uint256)"
 ];
+
     let tokenSale;
     let provider;
     let signer;
@@ -606,6 +625,8 @@
     const tokenRateValue = document.getElementById("tokenRateValue");
     const saleBalanceValue = document.getElementById("saleBalanceValue");
     const myCampaignList = document.getElementById("myCampaignList");
+    const saleEthBalanceValue = document.getElementById("saleEthBalanceValue");
+
 
 
 
@@ -693,12 +714,12 @@ await refreshDashboard();
     }
 
     async function refreshDashboard() {
-      if (!ensureReady()) return;
-      await checkBalance();
-      await loadCampaigns();
-      await loadHistory();
-      await loadTokenSaleInfo();
-      await loadMyCampaigns();
+       if (!ensureReady()) return;
+  await checkBalance();
+  await loadTokenSaleInfo();
+  await loadCampaigns();
+  await loadMyCampaigns();
+  await loadHistory();
 
     }
 
@@ -710,31 +731,32 @@ await refreshDashboard();
       balanceValue.textContent = `${balance.toString()} ART`;
     }
 
-    async function sendTokens() {
-      if (!ensureReady()) return;
+   async function sendTokens() {
+  if (!ensureReady()) return;
 
-      const receiver = document.getElementById("fundAddress").value.trim();
-      const amount = document.getElementById("fundAmount").value.trim();
+  const receiver = document.getElementById("fundAddress").value.trim();
+  const amount = document.getElementById("fundAmount").value.trim();
 
-      if (!receiver || !amount || Number(amount) <= 0) {
-        setStatus("Enter valid receiver and amount.", "error");
-        return;
-      }
+  if (!receiver || !amount || Number(amount) <= 0) {
+    setStatus("Enter valid receiver and amount.", "error");
+    return;
+  }
 
-      try {
-        setStatus("Sending ART...", "");
-        const tx = await rewardToken.transfer(receiver, amount);
-        await tx.wait();
+  try {
+    setStatus("Sending ART...", "");
+    const tx = await rewardToken.transfer(receiver, amount);
+    await tx.wait();
 
-        setStatus(`Sent ${amount} ART to ${shortAddress(receiver)}.`, "success");
-        document.getElementById("fundAddress").value = "";
-        document.getElementById("fundAmount").value = "";
-        await checkBalance();
-      } catch (error) {
-        setStatus(error.reason || error.message || "Token transfer failed.", "error");
-      }
-    }
-    async function buyTokens() {
+    setStatus("ART transferred successfully.", "success");
+    document.getElementById("fundAddress").value = "";
+    document.getElementById("fundAmount").value = "";
+    await refreshDashboard();
+  } catch (error) {
+    setStatus(error.reason || error.message || "Token transfer failed.", "error");
+  }
+}
+
+  async function buyTokens() {
   if (!ensureReady()) return;
 
   const ethAmount = document.getElementById("buyEthAmount").value.trim();
@@ -751,13 +773,14 @@ await refreshDashboard();
     });
     await tx.wait();
 
-    setStatus(`Bought ART for ${ethAmount} ETH.`, "success");
+    setStatus("ART purchased successfully.", "success");
     document.getElementById("buyEthAmount").value = "";
-    await checkBalance();
+    await refreshDashboard();
   } catch (error) {
     setStatus(error.reason || error.message || "Token purchase failed.", "error");
   }
 }
+
 async function loadMyCampaigns() {
   if (!ensureReady()) return;
 
@@ -820,8 +843,8 @@ async function deactivateCampaign(campaignId) {
     const tx = await campaignManager.setCampaignActive(campaignId, false);
     await tx.wait();
 
-    setStatus(`Campaign #${campaignId} deactivated.`, "success");
-    await loadCampaigns();
+    setStatus("Campaign deactivated successfully.", "success");
+    await refreshDashboard();
   } catch (error) {
     setStatus(error.reason || error.message || "Could not deactivate campaign.", "error");
   }
@@ -835,9 +858,8 @@ async function withdrawRemainingBudget(campaignId) {
     const tx = await campaignManager.withdrawRemainingBudget(campaignId);
     await tx.wait();
 
-    setStatus(`Remaining budget withdrawn from campaign #${campaignId}.`, "success");
-    await checkBalance();
-    await loadCampaigns();
+    setStatus("Remaining budget withdrawn successfully.", "success");
+    await refreshDashboard();
   } catch (error) {
     setStatus(error.reason || error.message || "Could not withdraw budget.", "error");
   }
@@ -872,19 +894,21 @@ async function withdrawRemainingBudget(campaignId) {
       return { adName, videoUrl, reward, budget };
     }
 
-    async function approveBudget() {
-      if (!ensureReady()) return;
+   async function approveBudget() {
+  if (!ensureReady()) return;
 
-      try {
-        const { budget } = validateCampaignForm();
-        setStatus("Approving budget...", "");
-        const tx = await rewardToken.approve(config.campaignManagerAddress, budget);
-        await tx.wait();
-        setStatus(`Approved ${budget} ART.`, "success");
-      } catch (error) {
-        setStatus(error.reason || error.message || "Approval failed.", "error");
-      }
-    }
+  try {
+    const { budget } = validateCampaignForm();
+    setStatus("Approving campaign budget...", "");
+    const tx = await rewardToken.approve(config.campaignManagerAddress, budget);
+    await tx.wait();
+    setStatus("Budget approved successfully.", "success");
+    await refreshDashboard();
+  } catch (error) {
+    setStatus(error.reason || error.message || "Approval failed.", "error");
+  }
+}
+
 
     async function createCampaign() {
       if (!ensureReady()) return;
@@ -1139,83 +1163,145 @@ async function withdrawRemainingBudget(campaignId) {
         return [];
       }
     }
-   async function loadTokenSaleInfo() {
+  async function loadTokenSaleInfo() {
   if (!ensureReady()) return;
 
   try {
     const rate = await tokenSale.tokensPerEth();
     const saleBalance = await tokenSale.getSaleTokenBalance();
+    const saleEthBalance = await tokenSale.getSaleEthBalance();
 
     tokenRateValue.textContent = `${rate.toString()} ART / ETH`;
     saleBalanceValue.textContent = `${saleBalance.toString()} ART`;
+    saleEthBalanceValue.textContent = `${ethers.formatEther(saleEthBalance)} ETH`;
   } catch (error) {
     setStatus(error.reason || error.message || "Could not load token sale info.", "error");
   }
 }
 
-    async function loadHistory() {
-      if (!ensureReady()) return;
 
-      try {
-        const backendRows = await fetchBackendHistory();
-        const chainRows = await fetchChainHistory();
+async function loadHistory() {
+  if (!ensureReady()) return;
 
-        const merged = new Map();
+  try {
+    const backendRows = await fetchBackendHistory();
+    const chainRows = await fetchChainHistory();
 
-        for (const row of [...backendRows, ...chainRows]) {
-          const key = `${(row.tx_hash || "nohash").toLowerCase()}-${row.campaign_id}-${row.reward}`;
-          if (!merged.has(key)) {
-            merged.set(key, row);
-          }
-        }
+    const normalized = [];
 
-        const rows = Array.from(merged.values());
+    for (const row of backendRows) {
+      normalized.push({ ...row, source: "db" });
+    }
 
-        if (!rows.length) {
-          historySummary.style.display = "none";
-          historyBox.innerHTML = '<div class="empty">No rewards claimed for this wallet.</div>';
-          return;
-        }
+    for (const row of chainRows) {
+      const alreadyInDb = backendRows.some(
+        (dbRow) =>
+          (dbRow.tx_hash && row.tx_hash && dbRow.tx_hash.toLowerCase() === row.tx_hash.toLowerCase()) ||
+          (
+            Number(dbRow.campaign_id) === Number(row.campaign_id) &&
+            Number(dbRow.reward) === Number(row.reward)
+          )
+      );
 
-        let total = 0;
-        const cards = [];
-
-        for (const row of rows) {
-          const campaign = await campaignManager.campaigns(row.campaign_id);
-          total += Number(row.reward);
-
-          cards.push(`
-            <div class="history-card">
-              <h3>${escapeHtml(campaign.adName)}</h3>
-              <div class="history-meta">
-                <div>
-                  <strong>Campaign ID</strong>
-                  ${row.campaign_id}
-                </div>
-                <div>
-                  <strong>Reward</strong>
-                  ${row.reward} ART
-                </div>
-                <div>
-                  <strong>Transaction</strong>
-                  ${row.tx_hash ? escapeHtml(shortAddress(row.tx_hash)) : "Pending sync"}
-                </div>
-                <div>
-                  <strong>Time</strong>
-                  ${row.timestamp ? new Date(row.timestamp).toLocaleString() : "From blockchain event"}
-                </div>
-              </div>
-            </div>
-          `);
-        }
-
-        totalEarned.textContent = `${total} ART`;
-        historySummary.style.display = "block";
-        historyBox.innerHTML = cards.join("");
-      } catch (error) {
-        setStatus(error.reason || error.message || "Could not load history.", "error");
+      if (!alreadyInDb) {
+        normalized.push({ ...row, source: "chain" });
       }
     }
+
+    if (!normalized.length) {
+      historySummary.style.display = "none";
+      historyBox.innerHTML = '<div class="empty">No rewards claimed for this wallet.</div>';
+      return;
+    }
+
+    let total = 0;
+    const cards = [];
+
+    for (const row of normalized) {
+      const campaign = await campaignManager.campaigns(row.campaign_id);
+      total += Number(row.reward);
+
+      cards.push(`
+        <div class="history-card">
+          <h3>${escapeHtml(campaign.adName)}</h3>
+          <div class="history-meta">
+            <div>
+              <strong>Campaign ID</strong>
+              ${row.campaign_id}
+            </div>
+            <div>
+              <strong>Reward</strong>
+              ${row.reward} ART
+            </div>
+            <div>
+              <strong>Transaction</strong>
+              ${row.tx_hash ? escapeHtml(shortAddress(row.tx_hash)) : "Pending sync"}
+            </div>
+            <div>
+              <strong>Time</strong>
+              ${row.timestamp ? new Date(row.timestamp).toLocaleString() : "From blockchain event"}
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    totalEarned.textContent = `${total} ART`;
+    historySummary.style.display = "block";
+    historyBox.innerHTML = cards.join("");
+  } catch (error) {
+    setStatus(error.reason || error.message || "Could not load history.", "error");
+  }
+}
+
+async function approveSellTokens() {
+  if (!ensureReady()) return;
+
+  const amount = document.getElementById("sellTokenAmount").value.trim();
+
+  if (!amount || Number(amount) <= 0) {
+    setStatus("Enter a valid ART amount.", "error");
+    return;
+  }
+
+  try {
+    setStatus("Approving ART for redemption...", "");
+    const tx = await rewardToken.approve(config.tokenSaleAddress, amount);
+    await tx.wait();
+
+    setStatus("ART approved for redemption.", "success");
+    await refreshDashboard();
+  } catch (error) {
+    setStatus(error.reason || error.message || "Approval failed.", "error");
+  }
+}
+
+
+async function sellTokens() {
+  if (!ensureReady()) return;
+
+  const amount = document.getElementById("sellTokenAmount").value.trim();
+
+  if (!amount || Number(amount) <= 0) {
+    setStatus("Enter a valid ART amount.", "error");
+    return;
+  }
+
+  try {
+    setStatus("Redeeming ART for ETH...", "");
+    const tx = await tokenSale.sellTokens(amount);
+    await tx.wait();
+
+    setStatus("ART redeemed successfully.", "success");
+    document.getElementById("sellTokenAmount").value = "";
+    await refreshDashboard();
+  } catch (error) {
+    setStatus(error.reason || error.message || "ART redemption failed.", "error");
+  }
+}
+
+
+
 
     window.ethereum?.on("accountsChanged", async (accounts) => {
       if (!accounts.length) {

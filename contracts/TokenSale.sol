@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 interface IRewardToken {
     function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -13,6 +14,7 @@ contract TokenSale {
     uint256 public tokensPerEth;
 
     event TokensPurchased(address indexed buyer, uint256 ethSpent, uint256 tokensReceived);
+    event TokensSold(address indexed seller, uint256 tokensSold, uint256 ethReturned);
     event RateUpdated(uint256 newRate);
     event EthWithdrawn(address indexed owner, uint256 amount);
 
@@ -56,6 +58,21 @@ contract TokenSale {
         emit TokensPurchased(buyer, ethAmount, tokenAmount);
     }
 
+    function sellTokens(uint256 tokenAmount) external {
+        require(tokenAmount > 0, "Token amount must be greater than 0");
+
+        uint256 ethAmount = (tokenAmount * 1 ether) / tokensPerEth;
+        require(ethAmount > 0, "Token amount too low");
+        require(address(this).balance >= ethAmount, "Not enough ETH in sale contract");
+
+        bool success = rewardToken.transferFrom(msg.sender, address(this), tokenAmount);
+        require(success, "Token transfer failed");
+
+        payable(msg.sender).transfer(ethAmount);
+
+        emit TokensSold(msg.sender, tokenAmount, ethAmount);
+    }
+
     function withdrawEth(uint256 amount) external onlyOwner {
         require(address(this).balance >= amount, "Not enough ETH");
 
@@ -66,6 +83,10 @@ contract TokenSale {
 
     function getSaleTokenBalance() external view returns (uint256) {
         return rewardToken.balanceOf(address(this));
+    }
+
+    function getSaleEthBalance() external view returns (uint256) {
+        return address(this).balance;
     }
 
     receive() external payable {
