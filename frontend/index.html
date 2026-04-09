@@ -1,1326 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AdReward Platform</title>
+  <title>AdReward | Web3 Advertising Platform</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
-  <style>
-    :root {
-      --bg: #f6f8fb;
-      --panel: #ffffff;
-      --panel-2: #f1f5f9;
-      --line: #d8e1ea;
-      --text: #132238;
-      --muted: #5b6b7f;
-      --primary: #0f766e;
-      --primary-dark: #0b5b55;
-      --accent: #f59e0b;
-      --success: #15803d;
-      --danger: #dc2626;
-      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background:
-        radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 24%),
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.1), transparent 22%),
-        var(--bg);
-      color: var(--text);
-    }
-
-    .app {
-      width: min(1120px, calc(100% - 24px));
-      margin: 0 auto;
-      padding: 24px 0 40px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: 32px;
-    }
-
-    .brand p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .nav {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .nav button,
-    button {
-      border: 0;
-      border-radius: 12px;
-      padding: 11px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: 0.18s ease;
-    }
-
-    button {
-      background: var(--primary);
-      color: white;
-      box-shadow: 0 10px 18px rgba(15, 118, 110, 0.15);
-    }
-
-    button:hover:not(:disabled) {
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-    }
-
-    button:disabled {
-      background: #9aa8b3;
-      box-shadow: none;
-      cursor: not-allowed;
-    }
-
-    .nav button {
-      background: white;
-      color: var(--text);
-      border: 1px solid var(--line);
-      box-shadow: none;
-    }
-
-    .nav button.active {
-      background: var(--text);
-      color: white;
-      border-color: var(--text);
-    }
-
-    .secondary {
-      background: #e8eef5;
-      color: var(--text);
-      box-shadow: none;
-      border: 1px solid var(--line);
-    }
-
-    .secondary:hover:not(:disabled) {
-      background: #dde7ef;
-    }
-
-    .accent {
-      background: var(--accent);
-      color: #30220a;
-      box-shadow: 0 10px 18px rgba(245, 158, 11, 0.2);
-    }
-
-    .accent:hover:not(:disabled) {
-      background: #e28f09;
-    }
-
-    .grid {
-      display: grid;
-      gap: 18px;
-    }
-
-    .grid-2 {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .grid-main {
-      grid-template-columns: 340px 1fr;
-      align-items: start;
-    }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      border-radius: 20px;
-      box-shadow: var(--shadow);
-      padding: 20px;
-    }
-
-    .card h2,
-    .card h3 {
-      margin-top: 0;
-      margin-bottom: 12px;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .wallet-grid,
-    .campaign-grid,
-    .history-grid {
-      display: grid;
-      gap: 14px;
-    }
-
-   .wallet-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-
-    .meta {
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-    }
-
-    .meta-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .meta-value {
-      font-weight: 700;
-      word-break: break-word;
-    }
-
-    .form-grid {
-      display: grid;
-      gap: 12px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    input {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px 13px;
-      font-size: 14px;
-      background: white;
-    }
-
-    input:focus {
-      outline: 2px solid rgba(15, 118, 110, 0.16);
-      border-color: var(--primary);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-    }
-
-    .section {
-      display: none;
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    .campaign-card,
-    .history-card {
-      background: white;
-      border: 1px solid #e5ebf2;
-      border-radius: 18px;
-      padding: 18px;
-    }
-
-    .campaign-meta,
-    .history-meta {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin: 14px 0;
-    }
-
-    .campaign-meta div,
-    .history-meta div {
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-    }
-
-    .campaign-meta strong,
-    .history-meta strong {
-      display: block;
-      font-size: 11px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-      letter-spacing: 0.08em;
-    }
-
-    .status {
-      border-radius: 14px;
-      padding: 14px 16px;
-      border: 1px solid var(--line);
-      background: white;
-      color: var(--text);
-      min-height: 52px;
-      display: flex;
-      align-items: center;
-    }
-
-    .status.success {
-      background: rgba(21, 128, 61, 0.08);
-      border-color: rgba(21, 128, 61, 0.18);
-      color: var(--success);
-    }
-
-    .status.error {
-      background: rgba(220, 38, 38, 0.08);
-      border-color: rgba(220, 38, 38, 0.18);
-      color: var(--danger);
-    }
-
-    .tag {
-      display: inline-block;
-      padding: 7px 11px;
-      border-radius: 999px;
-      background: rgba(15, 118, 110, 0.1);
-      color: var(--primary-dark);
-      font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .empty {
-      text-align: center;
-      padding: 26px;
-      border: 1px dashed var(--line);
-      border-radius: 16px;
-      color: var(--muted);
-      background: #fafcff;
-    }
-
-    .video-shell {
-      display: none;
-      background: #0f172a;
-      color: white;
-      border-radius: 18px;
-      padding: 16px;
-    }
-
-    .video-shell video {
-      width: 100%;
-      max-height: 320px;
-      border-radius: 14px;
-      background: black;
-      margin-top: 10px;
-    }
-
-    .video-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .summary {
-      padding: 16px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.12));
-      border: 1px solid rgba(15, 118, 110, 0.12);
-      margin-bottom: 14px;
-    }
-
-    .summary strong {
-      display: block;
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    .summary span {
-      font-size: 28px;
-      font-weight: 800;
-    }
-
-    @media (max-width: 920px) {
-      .grid-main,
-      .wallet-grid,
-      .grid-2,
-      .campaign-meta,
-      .history-meta {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
 </head>
-<body>
- <div class="app">
-  <div class="topbar">
-    <div class="brand">
-      <h1>AdReward Platform</h1>
-      <p>Buy ART, fund campaigns, and earn on-chain rewards.</p>
-    </div>
-    <div class="nav">
-      <button class="active" data-tab-btn="overview" onclick="showSection('overview')">Overview</button>
-      <button data-tab-btn="advertiser" onclick="showSection('advertiser')">Advertiser</button>
-      <button data-tab-btn="rewards" onclick="showSection('rewards')">Rewards</button>
-    </div>
-  </div>
 
-  <section class="card">
-    <div class="wallet-grid">
-      <div class="meta">
-        <div class="meta-label">Connected Account</div>
+<body>
+  <div id="tsparticles"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none;"></div>
+
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <h1>AdReward</h1>
+        <p>The Future of Web3 Attention Economics</p>
+      </div>
+      <div class="nav" style="flex:1; display:flex; justify-content:center;">
+        <button id="nav-overview" class="active" data-tab-btn="overview">Overview</button>
+        <button id="nav-advertiser" data-tab-btn="advertiser">Advertiser</button>
+        <button id="nav-rewards" data-tab-btn="rewards">Rewards</button>
+      </div>
+      <div id="authNav" style="display: flex; gap: 10px; align-items: center;"></div>
+    </div>
+
+    <div class="wallet-hero">
+      <div class="card">
+        <div class="meta-label">Connected Wallet</div>
         <div id="accountValue" class="meta-value">Not connected</div>
       </div>
-     
-      <div class="meta">
-        <div class="meta-label">ART Balance</div>
-        <div id="balanceValue" class="meta-value">0 ART</div>
+      <div class="card">
+        <div class="meta-label">Platform Balance</div>
+        <div id="balanceValue" class="meta-value" style="color: white; font-size: 28px;">0 ART</div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1; background: transparent; border: none; padding: 0;">
+        <div id="status" class="status">System Initialized - Awaiting Connection</div>
       </div>
     </div>
-   <div class="actions">
-  <button onclick="connectWallet()">Connect Wallet</button>
-</div>
 
-  </section>
-
-  <div style="height: 18px;"></div>
-
- <section id="overview" class="section active">
-  <div class="grid grid-2">
-   <div class="card">
-  <h2>Buy ART</h2>
-  <p class="muted">Purchase ART on-chain using ETH, then use it to fund campaigns.</p>
-  <p class="muted">For this demo, ART is sold through the TokenSale contract funded during deployment.</p>
-  <div class="form-grid">
-    <div>
-      <label for="buyEthAmount">ETH Amount</label>
-      <input id="buyEthAmount" type="number" min="0" step="0.001" placeholder="0.1" />
-    </div>
-    <div class="meta">
-      <div class="meta-label">Rate</div>
-      <div id="tokenRateValue" class="meta-value">-</div>
-    </div>
-    <div class="meta">
-      <div class="meta-label">Sale Token Balance</div>
-      <div id="saleBalanceValue" class="meta-value">-</div>
-    </div>
-    <div class="meta">
-      <div class="meta-label">Sale ETH Balance</div>
-      <div id="saleEthBalanceValue" class="meta-value">-</div>
-    </div>
-  </div>
-  <div class="actions">
-    <button class="accent" onclick="buyTokens()">Buy ART</button>
-  </div>
-</div>
-
-    <div class="card">
-      <h2>Transfer ART</h2>
-      <p class="muted">Optional wallet-to-wallet ART transfer.</p>
-      <div class="form-grid">
-        <div>
-          <label for="fundAddress">Receiver Address</label>
-          <input id="fundAddress" placeholder="0x..." />
+    <!-- Overview Section -->
+    <section id="overview" class="section active">
+      <div class="grid grid-2">
+        <div class="card">
+          <h2>Purchase ART Tokens</h2>
+          <p class="muted">Participate in the decentralized ad economy. Buy ART securely on-chain.</p>
+          <div class="grid grid-2" style="margin-bottom: 20px;">
+            <div class="meta">
+              <div class="meta-label">Current Rate</div>
+              <div id="tokenRateValue" class="meta-value">--</div>
+            </div>
+            <div class="meta">
+              <div class="meta-label">Sale Availability</div>
+              <div id="saleBalanceValue" class="meta-value">--</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="buyEthAmount">ETH Amount to Spend</label>
+            <input id="buyEthAmount" type="number" step="0.001" placeholder="0.1 ETH" />
+          </div>
+          <button id="btn-buyTokens" class="btn-primary" style="width: 100%;">Execute Trade</button>
         </div>
-        <div>
-          <label for="fundAmount">Token Amount</label>
-          <input id="fundAmount" type="number" min="1" placeholder="1000" />
+
+        <div class="grid">
+          <div class="card">
+            <h2>Transfer ART</h2>
+            <div class="form-group">
+              <label>Receiver Address</label>
+              <input id="fundAddress" placeholder="0x..." />
+            </div>
+            <div class="form-group">
+              <label>Amount (ART)</label>
+              <input id="fundAmount" type="number" placeholder="1000" />
+            </div>
+            <button id="btn-sendTokens" class="btn-secondary">Send Tokens</button>
+          </div>
+
+          <div class="card">
+            <h2>Redeem ART to ETH</h2>
+            <div class="form-group">
+              <label>Amount to Sell (ART)</label>
+              <input id="sellTokenAmount" type="number" placeholder="500" />
+            </div>
+            <div class="actions">
+              <button id="btn-approveSellTokens" class="btn-secondary">1. Approve</button>
+              <button id="btn-sellTokens" class="btn-primary">2. Redeem</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="actions">
-        <button class="accent" onclick="sendTokens()">Transfer ART</button>
-      </div>
-    </div>
-    <div class="card">
-  <h2>Redeem ART</h2>
-  <p class="muted">Approve ART first, then redeem it back to ETH from the TokenSale contract.</p>
-  <div class="form-grid">
-    <div>
-      <label for="sellTokenAmount">ART Amount</label>
-      <input id="sellTokenAmount" type="number" min="1" placeholder="100" />
-    </div>
-  </div>
-  <div class="actions">
-    <button class="secondary" onclick="approveSellTokens()">Approve ART for Sell</button>
-    <button class="accent" onclick="sellTokens()">Sell ART</button>
-  </div>
-</div>
+    </section>
 
-
-    <div class="card">
-      <h2>Status</h2>
-      <div id="status" class="status">Connect wallet to begin.</div>
-      <div style="height: 16px;"></div>
-      <div class="muted">Local demo flow: buy ART, approve budget, create campaign, watch ad, claim reward.</div>
-    </div>
-  </div>
-</section>
-
-
+    <!-- Advertiser Section -->
     <section id="advertiser" class="section">
       <div class="grid grid-main">
         <div class="card">
-          <h2>Create Campaign</h2>
-          <p class="muted">Step 1: Buy ART or receive ART. Step 2: Approve budget. Step 3: Create campaign.</p>
-          <div class="form-grid">
-            <div>
-              <label for="adName">Campaign Name</label>
-              <input id="adName" placeholder="Nike Ad" />
-            </div>
-            <div>
-              <label for="videoUrl">Video URL</label>
-              <input id="videoUrl" placeholder="https://example.com/ad.mp4" />
-            </div>
-            <div>
-              <label for="reward">Reward Per View</label>
-              <input id="reward" type="number" min="1" placeholder="10" />
-            </div>
-            <div>
-              <label for="budget">Campaign Budget</label>
-              <input id="budget" type="number" min="1" placeholder="1000" />
-            </div>
+          <h2>Launch Campaign</h2>
+          <p class="muted">1 ART = 1 Ad execution view</p>
+          <div class="form-group">
+            <label>Campaign Name</label>
+            <input id="adName" placeholder="e.g. Web3 Promo" />
           </div>
-          <div class="actions">
-            <button class="secondary" onclick="approveBudget()">1.Approve Budget</button>
-            <button class="accent" onclick="createCampaign()">2.Create Campaign</button>
+          <div class="form-group">
+            <label>Video URL (MP4)</label>
+            <input id="videoUrl" placeholder="https://..." />
+          </div>
+          <div class="form-group">
+            <label>Reward Per View (ART)</label>
+            <input id="reward" type="number" placeholder="10" />
+          </div>
+          <div class="form-group">
+            <label>Total Budget (ART)</label>
+            <input id="budget" type="number" placeholder="5000" />
+          </div>
+          <div class="actions" style="margin-top:24px;">
+            <button id="btn-approveBudget" class="btn-secondary" style="flex:1">Approve</button>
+            <button id="btn-createCampaign" class="btn-primary" style="flex:1">Deploy</button>
           </div>
         </div>
 
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-            <h2 style="margin:0;">Active Campaigns</h2>
-            <button onclick="loadCampaigns()">Load Campaigns</button>
+        <div class="grid">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+              <h2 style="margin:0;">Active Campaigns</h2>
+              <button id="btn-refreshNetwork" class="btn-secondary" style="padding: 8px 16px; font-size: 13px;">Refresh Network</button>
+            </div>
+            <div id="campaignList" class="grid grid-2"></div>
           </div>
-          <div style="height: 14px;"></div>
-          <div id="campaignList" class="campaign-grid"></div>
+
+          <div class="card">
+            <h2 style="margin-bottom: 20px;">My Campaigns</h2>
+            <div id="myCampaignList" class="grid grid-2"></div>
+          </div>
         </div>
       </div>
-      <div style="height: 18px;"></div>
-
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-    <h2 style="margin:0;">My Campaigns</h2>
-    <button class="secondary" onclick="loadMyCampaigns()">Refresh My Campaigns</button>
-  </div>
-  <div style="height: 14px;"></div>
-  <div id="myCampaignList" class="campaign-grid"></div>
-</div>
-
     </section>
 
+    <!-- Rewards Section -->
     <section id="rewards" class="section">
-      <div class="grid grid-2">
+      <div class="grid grid-main">
         <div class="card">
-          <h2>Watch And Claim</h2>
-          <p class="muted">Choose a campaign, watch the full ad, then claim your reward.</p>
-          <div id="watchPlaceholder" class="empty">Select a campaign from Advertiser tab.</div>
+          <h2>Earn Rewards</h2>
+          <p class="muted">Select a campaign, watch entirely to generate Cryptographic Proof-of-View.</p>
+          <div id="watchPlaceholder" class="empty">Select an active campaign from the Advertiser tab.</div>
+
           <div id="adSection" class="video-shell">
             <div class="video-top">
               <div>
-                <div id="watchingTag" class="tag">Ready</div>
-                <div id="timer">Watch full video to enable claim.</div>
+                <div id="watchingTag" class="tag">VERIFIER READY</div>
+                <div id="timer" style="color: var(--muted); font-size: 13px;">Awaiting Playback...</div>
               </div>
-              <button id="claimBtn" disabled onclick="claimReward()">Claim Reward</button>
+              <button id="claimBtn" class="btn-primary" disabled>Claim Reward</button>
             </div>
             <video id="adVideo" controls controlsList="nodownload"></video>
           </div>
         </div>
 
         <div class="card">
-          <h2>Reward History</h2>
-          <p class="muted">Your claimed rewards from blockchain and indexed history.</p>
-          <div id="historySummary" class="summary" style="display:none;">
-            <strong>Total Earned</strong>
-            <span id="totalEarned">0 ART</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h2 style="margin:0;">Past Rewards</h2>
+            <button id="btn-syncChain" class="btn-secondary" style="padding: 8px 16px; font-size: 13px;">Sync Chain</button>
           </div>
-          <div class="actions" style="margin-top:0;margin-bottom:14px;">
-            <button class="secondary" onclick="checkBalance()">Check Balance</button>
-            <button onclick="loadHistory()">Refresh History</button>
+
+          <div class="meta" style="margin-bottom: 20px; display: none;" id="historySummary">
+            <div class="meta-label">Total Proof-of-View Earned</div>
+            <div id="totalEarned" class="meta-value" style="font-size: 24px;">0 ART</div>
           </div>
-          <div id="history" class="history-grid"></div>
+
+          <div id="history" class="grid"></div>
         </div>
       </div>
     </section>
   </div>
 
-  <script>
-   const config = {
-  tokenAddress: "0x356231155A09325318Da5C4D45E7e6231B1f0f5B",
-  campaignManagerAddress: "0x4AC9cF43070192DDd3904B4A74439334Aa6B94EB",
-  adInteractionAddress: "0xc5b6d2dbbb399271d19230ca50fa3df49a60154f",
-  tokenSaleAddress: "0x86CB9d3eA6F3eD10fc852239d33be404100dBa4A",
-  backendUrl: "http://localhost:3001"
-};
-
-
-    const tokenABI = [
-      "function owner() view returns (address)",
-      "function balanceOf(address) view returns (uint256)",
-      "function approve(address spender, uint256 amount) returns (bool)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function transfer(address to, uint256 amount) returns (bool)"
-    ];
-
-    const campaignManagerABI = [
-      "function campaignCount() view returns (uint256)",
-      "function createCampaign(string,string,uint256,uint256)",
-      "function setCampaignActive(uint256,bool)",
-      "function campaigns(uint256) view returns (address advertiser,string adName,string videoUrl,uint256 rewardPerView,uint256 remainingBudget,bool active)",
-      "function getCampaign(uint256) view returns (address advertiser,string memory adName,string memory videoUrl,uint256 rewardPerView,uint256 remainingBudget,bool active)",
-      "function withdrawRemainingBudget(uint256 campaignId)"
-
-    ];
-
-    const adInteractionABI = [
-      "function claimReward(uint256 campaignId)",
-      "function hasClaimed(address,uint256) view returns (bool)",
-      "event AdClaimed(address indexed user, uint256 indexed campaignId, uint256 reward)"
-    ];
-const tokenSaleABI = [
-  "function buyTokens() payable",
-  "function sellTokens(uint256 tokenAmount)",
-  "function tokensPerEth() view returns (uint256)",
-  "function getSaleTokenBalance() view returns (uint256)",
-  "function getSaleEthBalance() view returns (uint256)"
-];
-
-    let tokenSale;
-    let provider;
-    let signer;
-    let rewardToken;
-    let campaignManager;
-    let adInteraction;
-    let currentAccount = "";
-    let currentCampaignId = null;
-
-    const accountValue = document.getElementById("accountValue");
-    const balanceValue = document.getElementById("balanceValue");
-    const statusBox = document.getElementById("status");
-    const campaignList = document.getElementById("campaignList");
-    const historyBox = document.getElementById("history");
-    const historySummary = document.getElementById("historySummary");
-    const totalEarned = document.getElementById("totalEarned");
-    const watchPlaceholder = document.getElementById("watchPlaceholder");
-    const adSection = document.getElementById("adSection");
-    const watchingTag = document.getElementById("watchingTag");
-    const timer = document.getElementById("timer");
-    const claimBtn = document.getElementById("claimBtn");
-    const adVideo = document.getElementById("adVideo");
-    const tokenRateValue = document.getElementById("tokenRateValue");
-    const saleBalanceValue = document.getElementById("saleBalanceValue");
-    const myCampaignList = document.getElementById("myCampaignList");
-    const saleEthBalanceValue = document.getElementById("saleEthBalanceValue");
-
-
-
-
-    function showSection(sectionId) {
-      document.querySelectorAll(".section").forEach((section) => {
-        section.classList.toggle("active", section.id === sectionId);
-      });
-
-      document.querySelectorAll("[data-tab-btn]").forEach((button) => {
-        button.classList.toggle("active", button.dataset.tabBtn === sectionId);
-      });
-    }
-
-    function setStatus(message, type = "") {
-      statusBox.className = type ? `status ${type}` : "status";
-      statusBox.textContent = message;
-    }
-
-    function ensureReady() {
-      if (!window.ethereum) {
-        setStatus("MetaMask is required.", "error");
-        return false;
-      }
-
-      if (!rewardToken || !campaignManager || !adInteraction || !signer) {
-        setStatus("Connect wallet first.", "error");
-        return false;
-      }
-
-      return true;
-    }
-
-    function shortAddress(address) {
-      if (!address) return "Not connected";
-      return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function sleep(ms) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
-    function attachWatchButtons() {
-      document.querySelectorAll("[data-watch-id]").forEach((button) => {
-        button.addEventListener("click", () => {
-          watchAd(Number(button.dataset.watchId));
-          showSection("rewards");
-        });
-      });
-    }
-
-    async function connectWallet() {
-      if (!window.ethereum) {
-        setStatus("MetaMask is required.", "error");
-        return;
-      }
-
-      try {
-        provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-
-        currentAccount = accounts[0];
-        signer = await provider.getSigner(currentAccount);
-
-        rewardToken = new ethers.Contract(config.tokenAddress, tokenABI, signer);
-        campaignManager = new ethers.Contract(config.campaignManagerAddress, campaignManagerABI, signer);
-        adInteraction = new ethers.Contract(config.adInteractionAddress, adInteractionABI, signer);
-        tokenSale = new ethers.Contract(config.tokenSaleAddress, tokenSaleABI, signer);
-
-        accountValue.textContent = currentAccount;
-setStatus(`Connected ${shortAddress(currentAccount)}`, "success");
-
-await refreshDashboard();
-      } catch (error) {
-        setStatus(error.reason || error.message || "Wallet connection failed.", "error");
-      }
-    }
-
-    async function refreshDashboard() {
-       if (!ensureReady()) return;
-  await checkBalance();
-  await loadTokenSaleInfo();
-  await loadCampaigns();
-  await loadMyCampaigns();
-  await loadHistory();
-
-    }
-
-   
-
-    async function checkBalance() {
-      if (!ensureReady()) return;
-      const balance = await rewardToken.balanceOf(currentAccount);
-      balanceValue.textContent = `${balance.toString()} ART`;
-    }
-
-   async function sendTokens() {
-  if (!ensureReady()) return;
-
-  const receiver = document.getElementById("fundAddress").value.trim();
-  const amount = document.getElementById("fundAmount").value.trim();
-
-  if (!receiver || !amount || Number(amount) <= 0) {
-    setStatus("Enter valid receiver and amount.", "error");
-    return;
-  }
-
-  try {
-    setStatus("Sending ART...", "");
-    const tx = await rewardToken.transfer(receiver, amount);
-    await tx.wait();
-
-    setStatus("ART transferred successfully.", "success");
-    document.getElementById("fundAddress").value = "";
-    document.getElementById("fundAmount").value = "";
-    await refreshDashboard();
-  } catch (error) {
-    setStatus(error.reason || error.message || "Token transfer failed.", "error");
-  }
-}
-
-  async function buyTokens() {
-  if (!ensureReady()) return;
-
-  const ethAmount = document.getElementById("buyEthAmount").value.trim();
-
-  if (!ethAmount || Number(ethAmount) <= 0) {
-    setStatus("Enter a valid ETH amount.", "error");
-    return;
-  }
-
-  try {
-    setStatus("Buying ART...", "");
-    const tx = await tokenSale.buyTokens({
-      value: ethers.parseEther(ethAmount)
-    });
-    await tx.wait();
-
-    setStatus("ART purchased successfully.", "success");
-    document.getElementById("buyEthAmount").value = "";
-    await refreshDashboard();
-  } catch (error) {
-    setStatus(error.reason || error.message || "Token purchase failed.", "error");
-  }
-}
-
-async function loadMyCampaigns() {
-  if (!ensureReady()) return;
-
-  try {
-    const count = Number(await campaignManager.campaignCount());
-    const cards = [];
-
-    for (let i = 1; i <= count; i += 1) {
-      const campaign = await campaignManager.campaigns(i);
-      const isOwn = currentAccount.toLowerCase() === campaign.advertiser.toLowerCase();
-
-      if (!isOwn) continue;
-
-      const actionHtml = campaign.active
-        ? `<button class="secondary" onclick="deactivateCampaign(${i})">Deactivate</button>`
-        : `<button class="secondary" onclick="withdrawRemainingBudget(${i})">Withdraw Budget</button>`;
-
-      const statusText = campaign.active ? "Active" : "Inactive";
-
-      cards.push(`
-        <div class="campaign-card">
-          <div class="tag">Campaign #${i}</div>
-          <h3>${escapeHtml(campaign.adName)}</h3>
-          <div class="campaign-meta">
-            <div>
-              <strong>Reward</strong>
-              ${campaign.rewardPerView.toString()} ART
-            </div>
-            <div>
-              <strong>Remaining Budget</strong>
-              ${campaign.remainingBudget.toString()} ART
-            </div>
-            <div>
-              <strong>Status</strong>
-              ${escapeHtml(statusText)}
-            </div>
-            <div>
-              <strong>Video URL</strong>
-              ${escapeHtml(campaign.videoUrl)}
-            </div>
-          </div>
-          <div class="actions">${actionHtml}</div>
-        </div>
-      `);
-    }
-
-    myCampaignList.innerHTML = cards.length
-      ? cards.join("")
-      : '<div class="empty">No campaigns created by this wallet.</div>';
-  } catch (error) {
-    setStatus(error.reason || error.message || "Could not load your campaigns.", "error");
-  }
-}
-
-async function deactivateCampaign(campaignId) {
-  if (!ensureReady()) return;
-
-  try {
-    setStatus("Deactivating campaign...", "");
-    const tx = await campaignManager.setCampaignActive(campaignId, false);
-    await tx.wait();
-
-    setStatus("Campaign deactivated successfully.", "success");
-    await refreshDashboard();
-  } catch (error) {
-    setStatus(error.reason || error.message || "Could not deactivate campaign.", "error");
-  }
-}
-
-async function withdrawRemainingBudget(campaignId) {
-  if (!ensureReady()) return;
-
-  try {
-    setStatus("Withdrawing remaining budget...", "");
-    const tx = await campaignManager.withdrawRemainingBudget(campaignId);
-    await tx.wait();
-
-    setStatus("Remaining budget withdrawn successfully.", "success");
-    await refreshDashboard();
-  } catch (error) {
-    setStatus(error.reason || error.message || "Could not withdraw budget.", "error");
-  }
-}
-
-
-
-    function getCampaignFormValues() {
-      return {
-        adName: document.getElementById("adName").value.trim(),
-        videoUrl: document.getElementById("videoUrl").value.trim(),
-        reward: document.getElementById("reward").value.trim(),
-        budget: document.getElementById("budget").value.trim()
-      };
-    }
-
-    function validateCampaignForm() {
-      const { adName, videoUrl, reward, budget } = getCampaignFormValues();
-
-      if (!adName || !videoUrl || !reward || !budget) {
-        throw new Error("Fill all campaign fields.");
-      }
-
-      if (Number(reward) <= 0 || Number(budget) <= 0) {
-        throw new Error("Reward and budget must be greater than zero.");
-      }
-
-      if (Number(budget) < Number(reward)) {
-        throw new Error("Budget must be at least reward amount.");
-      }
-
-      return { adName, videoUrl, reward, budget };
-    }
-
-   async function approveBudget() {
-  if (!ensureReady()) return;
-
-  try {
-    const { budget } = validateCampaignForm();
-    setStatus("Approving campaign budget...", "");
-    const tx = await rewardToken.approve(config.campaignManagerAddress, budget);
-    await tx.wait();
-    setStatus("Budget approved successfully.", "success");
-    await refreshDashboard();
-  } catch (error) {
-    setStatus(error.reason || error.message || "Approval failed.", "error");
-  }
-}
-
-
-    async function createCampaign() {
-      if (!ensureReady()) return;
-
-      try {
-        const { adName, videoUrl, reward, budget } = validateCampaignForm();
-        const allowance = await rewardToken.allowance(currentAccount, config.campaignManagerAddress);
-
-        if (allowance < BigInt(budget)) {
-          throw new Error("Approve budget first.");
-        }
-
-        setStatus("Creating campaign...", "");
-        const tx = await campaignManager.createCampaign(adName, videoUrl, reward, budget);
-        await tx.wait();
-
-        setStatus(`Campaign "${adName}" created.`, "success");
-
-        document.getElementById("adName").value = "";
-        document.getElementById("videoUrl").value = "";
-        document.getElementById("reward").value = "";
-        document.getElementById("budget").value = "";
-
-        await refreshDashboard();
-      } catch (error) {
-        setStatus(error.reason || error.message || "Campaign creation failed.", "error");
-      }
-    }
-
-   async function loadCampaigns() {
-  if (!ensureReady()) return;
-
-  try {
-    const count = Number(await campaignManager.campaignCount());
-
-    if (count === 0) {
-      campaignList.innerHTML = '<div class="empty">No campaigns available.</div>';
-      return;
-    }
-
-    const cards = [];
-
-    for (let i = 1; i <= count; i += 1) {
-      const campaign = await campaignManager.campaigns(i);
-
-      if (!campaign.active) {
-        continue;
-      }
-
-      const claimed = await adInteraction.hasClaimed(currentAccount, i);
-      const isOwn = currentAccount.toLowerCase() === campaign.advertiser.toLowerCase();
-
-      let actionHtml = '<button disabled>Unavailable</button>';
-      let statusText = "Active";
-
-      if (isOwn) {
-        statusText = "Your Campaign";
-        actionHtml = `<button class="secondary" onclick="deactivateCampaign(${i})">Deactivate</button>`;
-      } else if (claimed) {
-        statusText = "Reward already claimed";
-        actionHtml = '<button disabled>Already Watched</button>';
-      } else {
-        actionHtml = `<button data-watch-id="${i}">Watch Ad</button>`;
-      }
-
-      cards.push(`
-        <div class="campaign-card">
-          <div class="tag">Campaign #${i}</div>
-          <h3>${escapeHtml(campaign.adName)}</h3>
-          <div class="campaign-meta">
-            <div>
-              <strong>Reward</strong>
-              ${campaign.rewardPerView.toString()} ART
-            </div>
-            <div>
-              <strong>Remaining Budget</strong>
-              ${campaign.remainingBudget.toString()} ART
-            </div>
-            <div>
-              <strong>Advertiser</strong>
-              ${escapeHtml(shortAddress(campaign.advertiser))}
-            </div>
-            <div>
-              <strong>Status</strong>
-              ${escapeHtml(statusText)}
-            </div>
-          </div>
-          <div class="actions">${actionHtml}</div>
-        </div>
-      `);
-    }
-
-    campaignList.innerHTML = cards.length
-      ? cards.join("")
-      : '<div class="empty">No active campaigns available.</div>';
-
-    attachWatchButtons();
-  } catch (error) {
-    setStatus(error.reason || error.message || "Could not load campaigns.", "error");
-  }
-}
-
-
-   async function watchAd(campaignId) {
-  if (!ensureReady()) return;
-
-  try {
-    const campaign = await campaignManager.campaigns(campaignId);
-
-    if (currentAccount.toLowerCase() === campaign.advertiser.toLowerCase()) {
-      throw new Error("Advertiser cannot claim own ad.");
-    }
-
-    currentCampaignId = campaignId;
-    watchingTag.textContent = campaign.adName;
-    timer.textContent = "Watch full video to enable claim.";
-    claimBtn.disabled = true;
-
-    const startResponse = await fetch(`${config.backendUrl}/watch/start`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user: currentAccount,
-        campaignId
-      })
-    });
-
-    if (!startResponse.ok) {
-      throw new Error("Failed to start watch session.");
-    }
-
-    watchPlaceholder.style.display = "none";
-    adSection.style.display = "block";
-    adVideo.src = campaign.videoUrl;
-    adVideo.load();
-    await adVideo.play();
-
-    adVideo.onended = async () => {
-      try {
-        const completeResponse = await fetch(`${config.backendUrl}/watch/complete`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user: currentAccount,
-            campaignId
-          })
-        });
-
-        if (!completeResponse.ok) {
-          throw new Error("Failed to complete watch session.");
-        }
-
-        claimBtn.disabled = false;
-        timer.textContent = "Video completed. Claim is enabled.";
-        setStatus("Video completed. Claim reward now.", "success");
-      } catch (error) {
-        claimBtn.disabled = true;
-        setStatus(error.message || "Watch session completion failed.", "error");
-      }
-    };
-  } catch (error) {
-    setStatus(error.reason || error.message || "Could not start video.", "error");
-  }
-}
-
-
-    async function waitForHistorySync(txHash) {
-      for (let i = 0; i < 8; i += 1) {
-        try {
-          const response = await fetch(`${config.backendUrl}/history/${currentAccount}`);
-          if (response.ok) {
-            const rows = await response.json();
-            const found = rows.some((row) => (row.tx_hash || "").toLowerCase() === txHash.toLowerCase());
-            if (found) return true;
-          }
-        } catch (_) {}
-
-        await sleep(1500);
-      }
-
-      return false;
-    }
-
-   async function claimReward() {
-  if (!ensureReady() || currentCampaignId === null) return;
-
-  try {
-    const validResponse = await fetch(
-      `${config.backendUrl}/watch/valid/${currentAccount}/${currentCampaignId}`
-    );
-
-    if (!validResponse.ok) {
-      throw new Error("Could not validate watch session.");
-    }
-
-    const validation = await validResponse.json();
-
-    if (!validation.valid) {
-      throw new Error("Watch session is not valid. Watch the full ad first.");
-    }
-
-    setStatus("Claiming reward...", "");
-    const tx = await adInteraction.claimReward(currentCampaignId);
-    const receipt = await tx.wait();
-
-    setStatus("Reward claimed on-chain. Syncing history...", "success");
-
-    await waitForHistorySync(receipt.hash);
-    await checkBalance();
-    await loadCampaigns();
-    await loadMyCampaigns();
-    await loadHistory();
-
-    claimBtn.disabled = true;
-    currentCampaignId = null;
-    adVideo.pause();
-    adVideo.removeAttribute("src");
-    adVideo.load();
-    adSection.style.display = "none";
-    watchPlaceholder.style.display = "block";
-    watchingTag.textContent = "Ready";
-    timer.textContent = "Watch full video to enable claim.";
-  } catch (error) {
-    setStatus(error.reason || error.message || "Reward claim failed.", "error");
-  }
-}
-
-
-    async function fetchBackendHistory() {
-      try {
-        const response = await fetch(`${config.backendUrl}/history/${currentAccount}`);
-        if (!response.ok) return [];
-        return await response.json();
-      } catch {
-        return [];
-      }
-    }
-
-    async function fetchChainHistory() {
-      try {
-        const filter = adInteraction.filters.AdClaimed(currentAccount);
-        const events = await adInteraction.queryFilter(filter, 0, "latest");
-
-        return events.map((event) => ({
-          user_address: event.args.user,
-          campaign_id: Number(event.args.campaignId),
-          reward: Number(event.args.reward),
-          tx_hash: event.transactionHash,
-          timestamp: null
-        }));
-      } catch {
-        return [];
-      }
-    }
-  async function loadTokenSaleInfo() {
-  if (!ensureReady()) return;
-
-  try {
-    const rate = await tokenSale.tokensPerEth();
-    const saleBalance = await tokenSale.getSaleTokenBalance();
-    const saleEthBalance = await tokenSale.getSaleEthBalance();
-
-    tokenRateValue.textContent = `${rate.toString()} ART / ETH`;
-    saleBalanceValue.textContent = `${saleBalance.toString()} ART`;
-    saleEthBalanceValue.textContent = `${ethers.formatEther(saleEthBalance)} ETH`;
-  } catch (error) {
-    setStatus(error.reason || error.message || "Could not load token sale info.", "error");
-  }
-}
-
-
-async function loadHistory() {
-  if (!ensureReady()) return;
-
-  try {
-    const backendRows = await fetchBackendHistory();
-    const chainRows = await fetchChainHistory();
-
-    const normalized = [];
-
-    for (const row of backendRows) {
-      normalized.push({ ...row, source: "db" });
-    }
-
-    for (const row of chainRows) {
-      const alreadyInDb = backendRows.some(
-        (dbRow) =>
-          (dbRow.tx_hash && row.tx_hash && dbRow.tx_hash.toLowerCase() === row.tx_hash.toLowerCase()) ||
-          (
-            Number(dbRow.campaign_id) === Number(row.campaign_id) &&
-            Number(dbRow.reward) === Number(row.reward)
-          )
-      );
-
-      if (!alreadyInDb) {
-        normalized.push({ ...row, source: "chain" });
-      }
-    }
-
-    if (!normalized.length) {
-      historySummary.style.display = "none";
-      historyBox.innerHTML = '<div class="empty">No rewards claimed for this wallet.</div>';
-      return;
-    }
-
-    let total = 0;
-    const cards = [];
-
-    for (const row of normalized) {
-      const campaign = await campaignManager.campaigns(row.campaign_id);
-      total += Number(row.reward);
-
-      cards.push(`
-        <div class="history-card">
-          <h3>${escapeHtml(campaign.adName)}</h3>
-          <div class="history-meta">
-            <div>
-              <strong>Campaign ID</strong>
-              ${row.campaign_id}
-            </div>
-            <div>
-              <strong>Reward</strong>
-              ${row.reward} ART
-            </div>
-            <div>
-              <strong>Transaction</strong>
-              ${row.tx_hash ? escapeHtml(shortAddress(row.tx_hash)) : "Pending sync"}
-            </div>
-            <div>
-              <strong>Time</strong>
-              ${row.timestamp ? new Date(row.timestamp).toLocaleString() : "From blockchain event"}
-            </div>
-          </div>
-        </div>
-      `);
-    }
-
-    totalEarned.textContent = `${total} ART`;
-    historySummary.style.display = "block";
-    historyBox.innerHTML = cards.join("");
-  } catch (error) {
-    setStatus(error.reason || error.message || "Could not load history.", "error");
-  }
-}
-
-async function approveSellTokens() {
-  if (!ensureReady()) return;
-
-  const amount = document.getElementById("sellTokenAmount").value.trim();
-
-  if (!amount || Number(amount) <= 0) {
-    setStatus("Enter a valid ART amount.", "error");
-    return;
-  }
-
-  try {
-    setStatus("Approving ART for redemption...", "");
-    const tx = await rewardToken.approve(config.tokenSaleAddress, amount);
-    await tx.wait();
-
-    setStatus("ART approved for redemption.", "success");
-    await refreshDashboard();
-  } catch (error) {
-    setStatus(error.reason || error.message || "Approval failed.", "error");
-  }
-}
-
-
-async function sellTokens() {
-  if (!ensureReady()) return;
-
-  const amount = document.getElementById("sellTokenAmount").value.trim();
-
-  if (!amount || Number(amount) <= 0) {
-    setStatus("Enter a valid ART amount.", "error");
-    return;
-  }
-
-  try {
-    setStatus("Redeeming ART for ETH...", "");
-    const tx = await tokenSale.sellTokens(amount);
-    await tx.wait();
-
-    setStatus("ART redeemed successfully.", "success");
-    document.getElementById("sellTokenAmount").value = "";
-    await refreshDashboard();
-  } catch (error) {
-    setStatus(error.reason || error.message || "ART redemption failed.", "error");
-  }
-}
-
-
-
-
-    window.ethereum?.on("accountsChanged", async (accounts) => {
-      if (!accounts.length) {
-        location.reload();
-        return;
-      }
-
-      currentAccount = accounts[0];
-      signer = await provider.getSigner(currentAccount);
-
-      rewardToken = new ethers.Contract(config.tokenAddress, tokenABI, signer);
-      campaignManager = new ethers.Contract(config.campaignManagerAddress, campaignManagerABI, signer);
-      adInteraction = new ethers.Contract(config.adInteractionAddress, adInteractionABI, signer);
-      tokenSale = new ethers.Contract(config.tokenSaleAddress, tokenSaleABI, signer);
-
-      accountValue.textContent = currentAccount;
-      await refreshDashboard();
-      setStatus(`Switched to ${shortAddress(currentAccount)}`, "success");
-    });
-  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>

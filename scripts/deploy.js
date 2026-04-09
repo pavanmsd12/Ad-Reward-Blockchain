@@ -1,12 +1,17 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  const initialSupply = 1_000_000;
-  const saleSupply = 1_000_000;
-  const tokensPerEth = 1000;
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying contracts with account:", deployer.address);
+
+  // Using 18 decimals, parseEther handles the 10^18 multiplier automatically
+  // 100% of supply goes to TokenSale to decentralize control
+  const tokenSupply = ethers.parseEther("2000000"); // 2 Million ART total supply
+  const saleSupply = tokenSupply; // Send 100% of tokens to the TokenSale contract
+  const tokensPerEth = 10000; // 1 ETH = 10000 ART
 
   const RewardToken = await ethers.getContractFactory("RewardToken");
-  const rewardToken = await RewardToken.deploy(initialSupply);
+  const rewardToken = await RewardToken.deploy(tokenSupply);
   await rewardToken.waitForDeployment();
   const tokenAddress = await rewardToken.getAddress();
 
@@ -16,7 +21,8 @@ async function main() {
   const campaignManagerAddress = await campaignManager.getAddress();
 
   const AdInteraction = await ethers.getContractFactory("AdInteraction");
-  const adInteraction = await AdInteraction.deploy(campaignManagerAddress);
+  // Set the deployer address as the initial verifier
+  const adInteraction = await AdInteraction.deploy(campaignManagerAddress, deployer.address);
   await adInteraction.waitForDeployment();
   const adInteractionAddress = await adInteraction.getAddress();
 
@@ -28,6 +34,7 @@ async function main() {
   const setTx = await campaignManager.setInteractionContract(adInteractionAddress);
   await setTx.wait();
 
+  // Fund TokenSale contract
   const fundSaleTx = await rewardToken.transfer(tokenSaleAddress, saleSupply);
   await fundSaleTx.wait();
 
@@ -36,12 +43,11 @@ async function main() {
   console.log("AdInteraction deployed to:", adInteractionAddress);
   console.log("TokenSale deployed to:", tokenSaleAddress);
 
-  console.log("\nFrontend config");
-  console.log("tokenAddress =", tokenAddress);
-  console.log("campaignManagerAddress =", campaignManagerAddress);
-  console.log("adInteractionAddress =", adInteractionAddress);
-  console.log("tokenSaleAddress =", tokenSaleAddress);
-  console.log("tokensPerEth =", tokensPerEth);
+  console.log("\nUpdate config in app.js:");
+  console.log("tokenAddress: '" + tokenAddress + "',");
+  console.log("campaignManagerAddress: '" + campaignManagerAddress + "',");
+  console.log("adInteractionAddress: '" + adInteractionAddress + "',");
+  console.log("tokenSaleAddress: '" + tokenSaleAddress + "',");
 }
 
 main().catch((error) => {

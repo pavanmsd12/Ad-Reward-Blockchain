@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-interface IRewardToken {
-    function transfer(address to, uint256 amount) external returns (bool);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract TokenSale {
+contract TokenSale is ReentrancyGuard {
     address public owner;
-    IRewardToken public immutable rewardToken;
+    IERC20 public immutable rewardToken;
 
     uint256 public tokensPerEth;
 
@@ -28,7 +25,7 @@ contract TokenSale {
         require(initialRate > 0, "Rate must be greater than 0");
 
         owner = msg.sender;
-        rewardToken = IRewardToken(tokenAddress);
+        rewardToken = IERC20(tokenAddress);
         tokensPerEth = initialRate;
     }
 
@@ -39,14 +36,15 @@ contract TokenSale {
         emit RateUpdated(newRate);
     }
 
-    function buyTokens() external payable {
+    function buyTokens() external payable nonReentrant {
         _buyTokens(msg.sender, msg.value);
     }
 
     function _buyTokens(address buyer, uint256 ethAmount) internal {
         require(ethAmount > 0, "Send ETH to buy tokens");
 
-        uint256 tokenAmount = (ethAmount * tokensPerEth) / 1 ether;
+        // Since both ETH and ART have 18 decimals, 1 ETH = tokensPerEth ART tokens.
+        uint256 tokenAmount = (ethAmount * tokensPerEth);
         require(tokenAmount > 0, "ETH amount too low");
 
         uint256 contractBalance = rewardToken.balanceOf(address(this));
@@ -58,17 +56,18 @@ contract TokenSale {
         emit TokensPurchased(buyer, ethAmount, tokenAmount);
     }
 
-    function sellTokens(uint256 tokenAmount) external {
+    function sellTokens(uint256 tokenAmount) external nonReentrant {
         require(tokenAmount > 0, "Token amount must be greater than 0");
 
-        uint256 ethAmount = (tokenAmount * 1 ether) / tokensPerEth;
+        uint256 ethAmount = tokenAmount / tokensPerEth;
         require(ethAmount > 0, "Token amount too low");
         require(address(this).balance >= ethAmount, "Not enough ETH in sale contract");
 
         bool success = rewardToken.transferFrom(msg.sender, address(this), tokenAmount);
         require(success, "Token transfer failed");
 
-        payable(msg.sender).transfer(ethAmount);
+        (bool sent, ) = msg.sender.call{value: ethAmount}("");
+        require(sent, "Failed to send Ether");
 
         emit TokensSold(msg.sender, tokenAmount, ethAmount);
     }
@@ -76,7 +75,8 @@ contract TokenSale {
     function withdrawEth(uint256 amount) external onlyOwner {
         require(address(this).balance >= amount, "Not enough ETH");
 
-        payable(owner).transfer(amount);
+        (bool sent, ) = owner.call{value: amount}("");
+        require(sent, "Failed to send Ether");
 
         emit EthWithdrawn(owner, amount);
     }
@@ -89,7 +89,7 @@ contract TokenSale {
         return address(this).balance;
     }
 
-    receive() external payable {
+    receive() external payable nonReentrant {
         _buyTokens(msg.sender, msg.value);
     }
 }

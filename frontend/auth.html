@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdReward - Authenticate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <div id="tsparticles" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none;"></div>
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="brand">
+        <h1>AdReward</h1>
+        <p>Decentralized Attention Economics</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tab-signin" class="active">Sign In</button>
+        <button id="tab-signup">Sign Up</button>
+      </div>
+
+      <!-- Step 1: Phone -->
+      <div id="step-phone" class="auth-step active">
+        <h2 id="form-title">Welcome Back</h2>
+        <p id="form-desc" class="muted">Enter your phone number to sign in.</p>
+        
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input id="authPhone" type="tel" placeholder="e.g. 9876543210" />
+        </div>
+        <button id="btn-submitPhone" class="btn-primary full-width">Send OTP</button>
+      </div>
+
+      <!-- Step 2: OTP -->
+      <div id="step-otp" class="auth-step">
+        <h2>Verify OTP</h2>
+        <p class="muted">We sent a 4-digit code to your terminal.</p>
+        
+        <div class="form-group">
+          <label>Enter 4-Digit OTP</label>
+          <input id="authOtp" type="number" placeholder="1234" />
+        </div>
+        <button id="btn-submitOtp" class="btn-primary full-width">Verify</button>
+      </div>
+
+      <!-- Step 3: Connect Wallet (Sign Up Only) -->
+      <div id="step-wallet" class="auth-step">
+        <h2>Link MetaMask</h2>
+        <p class="muted">Phone verified! Now mapping your identity.</p>
+        
+        <div class="form-group" style="text-align: center;">
+          <button class="btn-primary full-width" id="connectMetaMaskBtn">Connect MetaMask</button>
+          
+          <div style="margin: 20px 0; color: var(--muted); font-size: 12px; font-weight:bold; letter-spacing:1px;">OR PASTE MANUALLY</div>
+          
+          <input id="manualWallet" type="text" placeholder="0x..." />
+        </div>
+        <button id="btn-linkManualWallet" class="btn-secondary full-width" style="margin-top:10px">Link Manual Wallet</button>
+      </div>
+
+      <p id="authError" class="error-text"></p>
+      <p id="authSuccess" class="success-text"></p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

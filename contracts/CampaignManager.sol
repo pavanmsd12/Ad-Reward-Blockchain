@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-interface IRewardToken {
-    function transfer(address to, uint256 amount) external returns (bool);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract CampaignManager {
     struct Campaign {
@@ -18,7 +15,7 @@ contract CampaignManager {
 
     address public owner;
     address public interactionContract;
-    IRewardToken public immutable rewardToken;
+    IERC20 public immutable rewardToken;
     uint256 public campaignCount;
 
     mapping(uint256 => Campaign) public campaigns;
@@ -49,7 +46,7 @@ contract CampaignManager {
     constructor(address tokenAddress) {
         require(tokenAddress != address(0), "Invalid token address");
         owner = msg.sender;
-        rewardToken = IRewardToken(tokenAddress);
+        rewardToken = IERC20(tokenAddress);
     }
 
     function setInteractionContract(address interactionAddress) external onlyOwner {
