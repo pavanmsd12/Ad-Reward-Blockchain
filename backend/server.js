@@ -40,12 +40,8 @@ async function initializeDatabase() {  await pool.query(`
     )
   `);
 
-  await pool.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS event_key TEXT");
-  await pool.query("ALTER TABLE transactions ALTER COLUMN reward TYPE NUMERIC");
-  await pool.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS tx_hash TEXT");
-  await pool.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS block_number INTEGER");
-  await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS transactions_event_key_idx ON transactions(event_key) WHERE event_key IS NOT NULL");
   
+
   // Modifying user constraints so phone can be stored BEFORE wallet is connected
   await pool.query("ALTER TABLE users ALTER COLUMN user_address DROP NOT NULL");
 }
